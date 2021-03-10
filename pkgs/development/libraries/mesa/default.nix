@@ -3,7 +3,7 @@
 , file, flex, bison, expat, libdrm, xorg, wayland, wayland-protocols, openssl
 , llvmPackages, libffi, libomxil-bellagio, libva-minimal
 , libelf, libvdpau, python3Packages
-, libglvnd
+, libglvnd, cmake, clang_11
 , enableRadv ? true
 , galliumDrivers ? ["auto"]
 , driDrivers ? ["auto"]
@@ -122,7 +122,7 @@ stdenv.mkDerivation {
 
   nativeBuildInputs = [
     pkg-config meson ninja
-    intltool bison flex file
+    intltool bison flex file cmake clang_11
     python3Packages.python python3Packages.Mako
   ] ++ lib.optionals (elem "wayland" eglPlatforms) [
     wayland # For wayland-scanner during the build
