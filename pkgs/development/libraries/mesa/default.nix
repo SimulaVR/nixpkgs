@@ -92,6 +92,7 @@ stdenv.mkDerivation {
     "-Dopencl-native=false"
     "-Dgallium-opencl=disabled"
     "-Dopencl-spirv=false"
+    "-Dmicrosoft-clc=false"
 
     "-Ddisk-cache-key=${placeholder "drivers"}"
     "-Ddri-search-path=${libglvnd.driverLink}/lib/dri"
