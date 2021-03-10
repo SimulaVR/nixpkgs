@@ -110,7 +110,7 @@ stdenv.mkDerivation {
   ];
 
   buildInputs = with xorg; [
-    expat llvmPackages.llvm llvmPackages.clang libglvnd xorgproto
+    expat llvmPackages.llvm llvmPackages.libclang libglvnd xorgproto
     libX11 libXext libxcb libXt libXfixes libxshmfence libXrandr
     libffi libvdpau libelf libXvMC
     libpthreadstubs openssl /*or another sha1 provider*/
