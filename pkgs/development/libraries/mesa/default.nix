@@ -104,7 +104,7 @@ stdenv.mkDerivation {
     "-Dva-libs-path=${placeholder "drivers"}/lib/dri"
     "-Dd3d-drivers-path=${placeholder "drivers"}/lib/d3d"
     "-Dgallium-nine=${boolToString enableGalliumNine}" # Direct3D in Wine
-    "-Dosmesa=${if enableOSMesa then "gallium" else "none"}" # used by wine
+    "-Dosmesa=${if enableOSMesa then "true" else "false"}" # used by wine
   ] ++ optionals stdenv.isLinux [
     "-Dglvnd=true"
   ];
