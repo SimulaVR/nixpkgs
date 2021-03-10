@@ -89,6 +89,10 @@ stdenv.mkDerivation {
     # https://gitlab.freedesktop.org/mesa/mesa/blob/master/docs/meson.html#L327
     "-Db_ndebug=true"
 
+    "-Dopencl-native=false"
+    "-Dgallium-opencl=false"
+    "-Dopencl-spirv=false"
+
     "-Ddisk-cache-key=${placeholder "drivers"}"
     "-Ddri-search-path=${libglvnd.driverLink}/lib/dri"
 
