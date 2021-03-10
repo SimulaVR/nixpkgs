@@ -122,7 +122,7 @@ stdenv.mkDerivation {
 
   nativeBuildInputs = [
     pkg-config meson ninja
-    intltool bison flex file cmake
+    intltool bison flex file cmake llvmPackages.clang-unwrapped
     python3Packages.python python3Packages.Mako
   ] ++ lib.optionals (elem "wayland" eglPlatforms) [
     wayland # For wayland-scanner during the build
