@@ -90,7 +90,7 @@ stdenv.mkDerivation {
     "-Db_ndebug=true"
 
     "-Dopencl-native=false"
-    "-Dgallium-opencl=false"
+    "-Dgallium-opencl=disabled"
     "-Dopencl-spirv=false"
 
     "-Ddisk-cache-key=${placeholder "drivers"}"
