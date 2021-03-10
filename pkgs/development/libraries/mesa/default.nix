@@ -110,7 +110,7 @@ stdenv.mkDerivation {
   ];
 
   buildInputs = with xorg; [
-    expat llvmPackages.llvm libglvnd xorgproto
+    expat llvmPackages.llvm llvmPackages.clang libglvnd xorgproto
     libX11 libXext libxcb libXt libXfixes libxshmfence libXrandr
     libffi libvdpau libelf libXvMC
     libpthreadstubs openssl /*or another sha1 provider*/
@@ -122,7 +122,7 @@ stdenv.mkDerivation {
 
   nativeBuildInputs = [
     pkg-config meson ninja
-    intltool bison flex file cmake clang_11
+    intltool bison flex file cmake llvmPackages.clang
     python3Packages.python python3Packages.Mako
   ] ++ lib.optionals (elem "wayland" eglPlatforms) [
     wayland # For wayland-scanner during the build
