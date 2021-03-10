@@ -1,4 +1,4 @@
-{ stdenv, lib, fetchgit, fetchpatch, buildPackages
+{ stdenv, lib, fetchurl, fetchpatch, buildPackages
 , pkg-config, intltool, ninja, meson
 , file, flex, bison, expat, libdrm, xorg, wayland, wayland-protocols, openssl
 , llvmPackages, libffi, libomxil-bellagio, libva-minimal
@@ -31,7 +31,7 @@ with lib;
 let
   # Release calendar: https://www.mesa3d.org/release-calendar.html
   # Release frequency: https://www.mesa3d.org/releasing.html#schedule
-  version = "20.3.4-git";
+  version = "21.0.0-git";
   branch  = versions.major version;
 in
 
@@ -39,11 +39,12 @@ stdenv.mkDerivation {
   pname = "mesa";
   inherit version;
 
-  src = fetchgit {
-            url = "https://gitlab.freedesktop.org/jasuarez/mesa.git";
-            rev = "2347b7fbadcb39c946e982a4637a6587fed820cc";
-            sha256 = "006xhldclzrjdcfv50w5d2ysy8qjxdl9jqigbs9dyckm8m2kr1c3";
-          };
+  src = pkgs.fetchgit {
+  "url": "file:///home/david/mesa",
+  "rev": "d8b9a0803878b2fb96b0059c71263db196398bcb",
+  "sha256": "07x8m87akij2856vca9bbb4fsraz890ddsi9h2vz705ig3ic9a0q",
+  };
+
   prePatch = "patchShebangs .";
 
   # TODO:
