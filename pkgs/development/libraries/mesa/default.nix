@@ -40,7 +40,7 @@ stdenv.mkDerivation {
   inherit version;
 
   src = fetchgit {
-    url = "file:///home/david/mesa";
+    url = "https://gitlab.freedesktop.org/jasuarez/mesa.git";
     rev = "d8b9a0803878b2fb96b0059c71263db196398bcb";
     sha256 = "07x8m87akij2856vca9bbb4fsraz890ddsi9h2vz705ig3ic9a0q";
   };
