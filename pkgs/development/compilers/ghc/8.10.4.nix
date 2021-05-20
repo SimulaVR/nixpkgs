@@ -99,8 +99,8 @@ stdenv.mkDerivation (rec {
   name = "${targetPrefix}ghc-${version}";
 
   src = fetchurl {
-    url = "https://downloads.haskell.org/ghc/${version}/ghc-${version}-src.tar.xz";
-    sha256 = "03li4k10hxgyxcdyyz2092wx09spr1599hi0sxbh4m889qdqgbsj";
+    url = "file:///home/david/ghc-8.10.4-src.tar.xz";
+    sha256 = "1fpnkgzz0x54zslpxb1s1ds866lnny42jzq8gxqjhgi0mchjrilw";
   };
 
   enableParallelBuilding = true;
