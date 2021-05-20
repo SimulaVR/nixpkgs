@@ -99,7 +99,7 @@ stdenv.mkDerivation (rec {
   name = "${targetPrefix}ghc-${version}";
 
   src = fetchurl {
-    url = "file:///home/david/ghc-8.10.4-src.tar.xz";
+    url = "https://simulavr.com/dist/ghc-8.10.4-src.tar.xz";
     sha256 = "0h0dlbnqxdvcxivkyarf3wpkpcdg2pz558digfaqk6yrw18ds6wx";
   };
 
