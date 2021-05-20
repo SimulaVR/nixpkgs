@@ -100,7 +100,7 @@ stdenv.mkDerivation (rec {
 
   src = fetchurl {
     url = "file:///home/david/ghc-8.10.4-src.tar.xz";
-    sha256 = "1fpnkgzz0x54zslpxb1s1ds866lnny42jzq8gxqjhgi0mchjrilw";
+    sha256 = "0h0dlbnqxdvcxivkyarf3wpkpcdg2pz558digfaqk6yrw18ds6wx";
   };
 
   enableParallelBuilding = true;
