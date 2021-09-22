@@ -1,9 +1,9 @@
-{ stdenv, lib, fetchurl, fetchpatch, buildPackages
+{ stdenv, lib, fetchgit, fetchpatch, buildPackages
 , pkg-config, intltool, ninja, meson
 , file, flex, bison, expat, libdrm, xorg, wayland, wayland-protocols, openssl
 , llvmPackages, libffi, libomxil-bellagio, libva-minimal
 , libelf, libvdpau, python3Packages
-, libglvnd
+, libglvnd, cmake, clang_11
 , enableRadv ? true
 , galliumDrivers ? ["auto"]
 , driDrivers ? ["auto"]
@@ -31,7 +31,7 @@ with lib;
 let
   # Release calendar: https://www.mesa3d.org/release-calendar.html
   # Release frequency: https://www.mesa3d.org/releasing.html#schedule
-  version = "20.3.4";
+  version = "21.0.0-git";
   branch  = versions.major version;
 in
 
@@ -39,14 +39,10 @@ stdenv.mkDerivation {
   pname = "mesa";
   inherit version;
 
-  src = fetchurl {
-    urls = [
-      "https://mesa.freedesktop.org/archive/mesa-${version}.tar.xz"
-      "ftp://ftp.freedesktop.org/pub/mesa/mesa-${version}.tar.xz"
-      "ftp://ftp.freedesktop.org/pub/mesa/${version}/mesa-${version}.tar.xz"
-      "ftp://ftp.freedesktop.org/pub/mesa/older-versions/${branch}.x/${version}/mesa-${version}.tar.xz"
-    ];
-    sha256 = "1120kf280hg4h0a2505vxf6rdw8r2ydl3cg4iwkmpx0zxj3sj8fw";
+  src = fetchgit {
+    url = "https://gitlab.freedesktop.org/jasuarez/mesa.git";
+    rev = "d8b9a0803878b2fb96b0059c71263db196398bcb";
+    sha256 = "07x8m87akij2856vca9bbb4fsraz890ddsi9h2vz705ig3ic9a0q";
   };
 
   prePatch = "patchShebangs .";
@@ -60,11 +56,6 @@ stdenv.mkDerivation {
     ./disk_cache-include-dri-driver-path-in-cache-key.patch
     # Fix `-Werror=int-conversion` pthread warnings on musl.
     # TODO: Remove when https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/6121 is merged and available
-    (fetchpatch {
-      name = "nine_debug-Make-tid-more-type-correct";
-      url = "https://gitlab.freedesktop.org/mesa/mesa/commit/aebbf819df6d1e.patch";
-      sha256 = "17248hyzg43d73c86p077m4lv1pkncaycr3l27hwv9k4ija9zl8q";
-    })
   ] ++ optionals (stdenv.isDarwin && stdenv.isAarch64) [
     # Fix aarch64-darwin build, remove when upstreaam supports it out of the box.
     # See: https://gitlab.freedesktop.org/mesa/mesa/-/issues/1020
@@ -98,6 +89,11 @@ stdenv.mkDerivation {
     # https://gitlab.freedesktop.org/mesa/mesa/blob/master/docs/meson.html#L327
     "-Db_ndebug=true"
 
+    "-Dopencl-native=false"
+    "-Dgallium-opencl=disabled"
+    "-Dopencl-spirv=false"
+    "-Dmicrosoft-clc=disabled"
+
     "-Ddisk-cache-key=${placeholder "drivers"}"
     "-Ddri-search-path=${libglvnd.driverLink}/lib/dri"
 
@@ -113,13 +109,13 @@ stdenv.mkDerivation {
     "-Dva-libs-path=${placeholder "drivers"}/lib/dri"
     "-Dd3d-drivers-path=${placeholder "drivers"}/lib/d3d"
     "-Dgallium-nine=${boolToString enableGalliumNine}" # Direct3D in Wine
-    "-Dosmesa=${if enableOSMesa then "gallium" else "none"}" # used by wine
+    "-Dosmesa=${if enableOSMesa then "true" else "false"}" # used by wine
   ] ++ optionals stdenv.isLinux [
     "-Dglvnd=true"
   ];
 
   buildInputs = with xorg; [
-    expat llvmPackages.llvm libglvnd xorgproto
+    expat llvmPackages.llvm llvmPackages.clang-unwrapped libglvnd xorgproto
     libX11 libXext libxcb libXt libXfixes libxshmfence libXrandr
     libffi libvdpau libelf libXvMC
     libpthreadstubs openssl /*or another sha1 provider*/
@@ -131,7 +127,7 @@ stdenv.mkDerivation {
 
   nativeBuildInputs = [
     pkg-config meson ninja
-    intltool bison flex file
+    intltool bison flex file cmake llvmPackages.clang-unwrapped
     python3Packages.python python3Packages.Mako
   ] ++ lib.optionals (elem "wayland" eglPlatforms) [
     wayland # For wayland-scanner during the build
