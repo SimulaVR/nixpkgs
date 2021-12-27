@@ -2,6 +2,7 @@
 with lib;
 let
   cfg = config.security.acme;
+  opt = options.security.acme;
 
   # Used to calculate timer accuracy for coalescing
   numCerts = length (builtins.attrNames cfg.certs);
@@ -21,15 +22,51 @@ let
   # The Group can vary depending on what the user has specified in
   # security.acme.certs.<cert>.group on some of the services.
   commonServiceConfig = {
-      Type = "oneshot";
-      User = "acme";
-      Group = mkDefault "acme";
-      UMask = 0023;
-      StateDirectoryMode = 750;
-      ProtectSystem = "full";
-      PrivateTmp = true;
+    Type = "oneshot";
+    User = "acme";
+    Group = mkDefault "acme";
+    UMask = 0022;
+    StateDirectoryMode = 750;
+    ProtectSystem = "strict";
+    ReadWritePaths = [
+      "/var/lib/acme"
+    ];
+    PrivateTmp = true;
 
-      WorkingDirectory = "/tmp";
+    WorkingDirectory = "/tmp";
+
+    CapabilityBoundingSet = [ "" ];
+    DevicePolicy = "closed";
+    LockPersonality = true;
+    MemoryDenyWriteExecute = true;
+    NoNewPrivileges = true;
+    PrivateDevices = true;
+    ProtectClock = true;
+    ProtectHome = true;
+    ProtectHostname = true;
+    ProtectControlGroups = true;
+    ProtectKernelLogs = true;
+    ProtectKernelModules = true;
+    ProtectKernelTunables = true;
+    ProtectProc = "invisible";
+    ProcSubset = "pid";
+    RemoveIPC = true;
+    RestrictAddressFamilies = [
+      "AF_INET"
+      "AF_INET6"
+    ];
+    RestrictNamespaces = true;
+    RestrictRealtime = true;
+    RestrictSUIDSGID = true;
+    SystemCallArchitectures = "native";
+    SystemCallFilter = [
+      # 1. allow a reasonable set of syscalls
+      "@system-service"
+      # 2. and deny unreasonable ones
+      "~@privileged @resources"
+      # 3. then allow the required subset within denied groups
+      "@chown"
+    ];
   };
 
   # In order to avoid race conditions creating the CA for selfsigned certs,
@@ -41,11 +78,13 @@ let
 
     unitConfig = {
       ConditionPathExists = "!/var/lib/acme/.minica/key.pem";
+      StartLimitIntervalSec = 0;
     };
 
     serviceConfig = commonServiceConfig // {
       StateDirectory = "acme/.minica";
       BindPaths = "/var/lib/acme/.minica:/tmp/ca";
+      UMask = 0077;
     };
 
     # Working directory will be /tmp
@@ -54,8 +93,6 @@ let
         --ca-key ca/key.pem \
         --ca-cert ca/cert.pem \
         --domains selfsigned.local
-
-      chmod 600 ca/*
     '';
   };
 
@@ -127,9 +164,8 @@ let
       [ "--dns" data.dnsProvider ]
       ++ optionals (!data.dnsPropagationCheck) [ "--dns.disable-cp" ]
       ++ optionals (data.dnsResolver != null) [ "--dns.resolvers" data.dnsResolver ]
-    ) else (
-      [ "--http" "--http.webroot" data.webroot ]
-    );
+    ) else if data.listenHTTP != null then [ "--http" "--http.port" data.listenHTTP ]
+    else [ "--http" "--http.webroot" data.webroot ];
 
     commonOpts = [
       "--accept-tos" # Checking the option is covered by the assertions
@@ -152,11 +188,19 @@ let
     );
     renewOpts = escapeShellArgs (
       commonOpts
-      ++ [ "renew" "--reuse-key" ]
+      ++ [ "renew" ]
       ++ optionals data.ocspMustStaple [ "--must-staple" ]
       ++ data.extraLegoRenewFlags
     );
 
+    # We need to collect all the ACME webroots to grant them write
+    # access in the systemd service.
+    webroots =
+      lib.remove null
+        (lib.unique
+            (builtins.map
+            (certAttrs: certAttrs.webroot)
+            (lib.attrValues config.security.acme.certs)));
   in {
     inherit accountHash cert selfsignedDeps;
 
@@ -192,10 +236,12 @@ let
 
       unitConfig = {
         ConditionPathExists = "!/var/lib/acme/${cert}/key.pem";
+        StartLimitIntervalSec = 0;
       };
 
       serviceConfig = commonServiceConfig // {
         Group = data.group;
+        UMask = 0027;
 
         StateDirectory = "acme/${cert}";
 
@@ -220,10 +266,12 @@ let
         cat cert.pem chain.pem > fullchain.pem
         cat key.pem fullchain.pem > full.pem
 
-        chmod 640 *
-
         # Group might change between runs, re-apply it
         chown 'acme:${data.group}' *
+
+        # Default permissions make the files unreadable by group + anon
+        # Need to be readable by group
+        chmod 640 *
       '';
     };
 
@@ -235,7 +283,7 @@ let
       # https://github.com/NixOS/nixpkgs/pull/81371#issuecomment-605526099
       wantedBy = optionals (!config.boot.isContainer) [ "multi-user.target" ];
 
-      path = with pkgs; [ lego coreutils diffutils ];
+      path = with pkgs; [ lego coreutils diffutils openssl ];
 
       serviceConfig = commonServiceConfig // {
         Group = data.group;
@@ -249,6 +297,8 @@ let
           "acme/.lego/${cert}/${certDir}"
           "acme/.lego/accounts/${accountHash}"
         ];
+
+        ReadWritePaths = commonServiceConfig.ReadWritePaths ++ webroots;
 
         # Needs to be space separated, but can't use a multiline string because that'll include newlines
         BindPaths = [
@@ -266,18 +316,58 @@ let
           if [ -e renewed ]; then
             rm renewed
             ${data.postRun}
+            ${optionalString (data.reloadServices != [])
+                "systemctl --no-block try-reload-or-restart ${escapeShellArgs data.reloadServices}"
+            }
           fi
         '');
+      } // optionalAttrs (data.listenHTTP != null && toInt (elemAt (splitString ":" data.listenHTTP) 1) < 1024) {
+        AmbientCapabilities = "CAP_NET_BIND_SERVICE";
       };
 
       # Working directory will be /tmp
       script = ''
-        set -euxo pipefail
+        ${optionalString data.enableDebugLogs "set -x"}
+        set -euo pipefail
+
+        # This reimplements the expiration date check, but without querying
+        # the acme server first. By doing this offline, we avoid errors
+        # when the network or DNS are unavailable, which can happen during
+        # nixos-rebuild switch.
+        is_expiration_skippable() {
+          pem=$1
+
+          # This function relies on set -e to exit early if any of the
+          # conditions or programs fail.
+
+          [[ -e $pem ]]
+
+          expiration_line="$(
+            set -euxo pipefail
+            openssl x509 -noout -enddate <$pem \
+                  | grep notAfter \
+                  | sed -e 's/^notAfter=//'
+          )"
+          [[ -n "$expiration_line" ]]
+
+          expiration_date="$(date -d "$expiration_line" +%s)"
+          now="$(date +%s)"
+          expiration_s=$[expiration_date - now]
+          expiration_days=$[expiration_s / (3600 * 24)]   # rounds down
+
+          [[ $expiration_days -gt ${toString cfg.validMinDays} ]]
+        }
 
         ${optionalString (data.webroot != null) ''
-          # Ensure the webroot exists
-          mkdir -p '${data.webroot}/.well-known/acme-challenge'
-          chown 'acme:${data.group}' ${data.webroot}/{.well-known,.well-known/acme-challenge}
+          # Ensure the webroot exists. Fixing group is required in case configuration was changed between runs.
+          # Lego will fail if the webroot does not exist at all.
+          (
+            mkdir -p '${data.webroot}/.well-known/acme-challenge' \
+            && chgrp '${data.group}' ${data.webroot}/.well-known/acme-challenge
+          ) || (
+            echo 'Please ensure ${data.webroot}/.well-known/acme-challenge exists and is writable by acme:${data.group}' \
+            && exit 1
+          )
         ''}
 
         echo '${domainHash}' > domainhash.txt
@@ -288,8 +378,14 @@ let
           # When domains are updated, there's no need to do a full
           # Lego run, but it's likely renew won't work if days is too low.
           if [ -e certificates/domainhash.txt ] && cmp -s domainhash.txt certificates/domainhash.txt; then
-            lego ${renewOpts} --days ${toString cfg.validMinDays}
+            if is_expiration_skippable out/full.pem; then
+              echo 1>&2 "nixos-acme: skipping renewal because expiration isn't within the coming ${toString cfg.validMinDays} days"
+            else
+              echo 1>&2 "nixos-acme: renewing now, because certificate expires within the configured ${toString cfg.validMinDays} days"
+              lego ${renewOpts} --days ${toString cfg.validMinDays}
+            fi
           else
+            echo 1>&2 "certificate domain(s) have changed; will renew now"
             # Any number > 90 works, but this one is over 9000 ;-)
             lego ${renewOpts} --days 9001
           fi
@@ -300,8 +396,6 @@ let
         fi
 
         mv domainhash.txt certificates/
-        chmod 640 certificates/*
-        chmod -R u=rwX,g=,o= accounts/*
 
         # Group might change between runs, re-apply it
         chown 'acme:${data.group}' certificates/*
@@ -317,6 +411,10 @@ let
           ln -sf fullchain.pem out/cert.pem
           cat out/key.pem out/fullchain.pem > out/full.pem
         fi
+
+        # By default group will have no access to the cert files.
+        # This chmod will fix that.
+        chmod 640 out/*
       '';
     };
   };
@@ -343,6 +441,8 @@ let
         default = "_mkMergedOptionModule";
       };
 
+      enableDebugLogs = mkEnableOption "debug logging for this certificate" // { default = cfg.enableDebugLogs; };
+
       webroot = mkOption {
         type = types.nullOr types.str;
         default = null;
@@ -353,6 +453,17 @@ let
           will be created below the webroot if it doesn't exist.
           <literal>http://example.org/.well-known/acme-challenge/</literal> must also
           be available (notice unencrypted HTTP).
+        '';
+      };
+
+      listenHTTP = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        example = ":1360";
+        description = ''
+          Interface and port to listen on to solve HTTP challenges
+          in the form [INTERFACE]:PORT.
+          If you use a port other than 80, you must proxy port 80 to this port.
         '';
       };
 
@@ -375,6 +486,7 @@ let
       email = mkOption {
         type = types.nullOr types.str;
         default = cfg.email;
+        defaultText = literalExpression "config.${opt.email}";
         description = "Contact email address for the CA to be able to reach you.";
       };
 
@@ -382,6 +494,15 @@ let
         type = types.str;
         default = "acme";
         description = "Group running the ACME client.";
+      };
+
+      reloadServices = mkOption {
+        type = types.listOf types.str;
+        default = [];
+        description = ''
+          The list of systemd services to call <code>systemctl try-reload-or-restart</code>
+          on.
+        '';
       };
 
       postRun = mkOption {
@@ -406,7 +527,7 @@ let
       extraDomainNames = mkOption {
         type = types.listOf types.str;
         default = [];
-        example = literalExample ''
+        example = literalExpression ''
           [
             "example.org"
             "mydomain.org"
@@ -512,6 +633,8 @@ in {
   options = {
     security.acme = {
 
+      enableDebugLogs = mkEnableOption "debug logging for all certificates by default" // { default = true; };
+
       validMinDays = mkOption {
         type = types.int;
         default = 30;
@@ -576,7 +699,7 @@ in {
           to those units if they rely on the certificates being present,
           or trigger restarts of the service if certificates get renewed.
         '';
-        example = literalExample ''
+        example = literalExpression ''
           {
             "example.com" = {
               webroot = "/var/lib/acme/acme-challenge/";
@@ -672,6 +795,28 @@ in {
           message = ''
             Options `security.acme.certs.${cert}.dnsProvider` and
             `security.acme.certs.${cert}.webroot` are mutually exclusive.
+          '';
+        }
+        {
+          assertion = data.webroot == null || data.listenHTTP == null;
+          message = ''
+            Options `security.acme.certs.${cert}.webroot` and
+            `security.acme.certs.${cert}.listenHTTP` are mutually exclusive.
+          '';
+        }
+        {
+          assertion = data.listenHTTP == null || data.dnsProvider == null;
+          message = ''
+            Options `security.acme.certs.${cert}.listenHTTP` and
+            `security.acme.certs.${cert}.dnsProvider` are mutually exclusive.
+          '';
+        }
+        {
+          assertion = data.dnsProvider != null || data.webroot != null || data.listenHTTP != null;
+          message = ''
+            One of `security.acme.certs.${cert}.dnsProvider`,
+            `security.acme.certs.${cert}.webroot`, or
+            `security.acme.certs.${cert}.listenHTTP` must be provided.
           '';
         }
       ]) cfg.certs));

@@ -1,18 +1,16 @@
-{ gcc9Stdenv, lib, stdenv, fetchFromGitHub, cmake, gettext, pkg-config, gpgme, libsolv, openssl, check
-, json_c, libmodulemd, libsmartcols, sqlite, librepo, libyaml, rpm }:
+{ lib, stdenv, fetchFromGitHub, cmake, gettext, pkg-config, gpgme, libsolv, openssl, check
+, json_c, libmodulemd, libsmartcols, sqlite, librepo, libyaml, rpm, zchunk }:
 
-gcc9Stdenv.mkDerivation rec {
+stdenv.mkDerivation rec {
   pname = "libdnf";
-  version = "0.58.0";
+  version = "0.65.0";
 
   src = fetchFromGitHub {
     owner = "rpm-software-management";
     repo = pname;
     rev = version;
-    sha256 = "0an8giv0lm0qqc76fpmqg42ra081mlj62b9r0s1p0sgb3270l76l";
+    sha256 = "sha256-vGXK4pOkff4yGaRZE+FFFIqEizUeCID+lxiE/TWt0Bs=";
   };
-
-  patches = lib.optionals stdenv.isDarwin [ ./darwin.patch ];
 
   nativeBuildInputs = [
     cmake
@@ -28,6 +26,7 @@ gcc9Stdenv.mkDerivation rec {
     libsmartcols
     libyaml
     libmodulemd
+    zchunk
   ];
 
   propagatedBuildInputs = [
@@ -53,7 +52,6 @@ gcc9Stdenv.mkDerivation rec {
     "-DWITH_GTKDOC=OFF"
     "-DWITH_HTML=OFF"
     "-DWITH_BINDINGS=OFF"
-    "-DWITH_ZCHUNK=OFF"
   ];
 
   meta = with lib; {

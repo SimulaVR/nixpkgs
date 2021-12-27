@@ -1,48 +1,46 @@
-{ buildPythonPackage
-, appdirs
-, contextlib2
+{ stdenv
+, lib
+, buildPythonPackage
+, pythonOlder
+, isPy27
+, backports-entry-points-selectable
 , cython
 , distlib
 , fetchPypi
 , filelock
-, fish
 , flaky
 , importlib-metadata
 , importlib-resources
-, isPy27
-, lib
 , pathlib2
+, platformdirs
 , pytest-freezegun
 , pytest-mock
 , pytest-timeout
 , pytestCheckHook
-, pythonOlder
-, setuptools_scm
+, setuptools-scm
 , six
-, stdenv
 }:
 
 buildPythonPackage rec {
   pname = "virtualenv";
-  version = "20.2.1";
+  version = "20.8.1";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "e0aac7525e880a429764cefd3aaaff54afb5d9f25c82627563603f5d7de5a6e5";
+    sha256 = "bcc17f0b3a29670dd777d6f0755a4c04f28815395bca279cdcb213b97199a6b8";
   };
 
   nativeBuildInputs = [
-    setuptools_scm
+    setuptools-scm
   ];
 
   propagatedBuildInputs = [
-    appdirs
+    backports-entry-points-selectable
     distlib
     filelock
+    platformdirs
     six
-  ] ++ lib.optionals isPy27 [
-    contextlib2
-  ] ++ lib.optionals (isPy27 && !stdenv.hostPlatform.isWindows) [
+  ] ++ lib.optionals (pythonOlder "3.4" && !stdenv.hostPlatform.isWindows) [
     pathlib2
   ] ++ lib.optionals (pythonOlder "3.7") [
     importlib-resources
@@ -56,7 +54,6 @@ buildPythonPackage rec {
 
   checkInputs = [
     cython
-    fish
     flaky
     pytest-freezegun
     pytest-mock
@@ -75,8 +72,11 @@ buildPythonPackage rec {
   ];
 
   disabledTests = [
-    "test_can_build_c_extensions"
-    "test_xonsh" # imports xonsh, which is not in pythonPackages
+    # Permission Error
+    "test_bad_exe_py_info_no_raise"
+  ] ++ lib.optionals isPy27 [
+    "test_python_via_env_var"
+    "test_python_multi_value_prefer_newline_via_env_var"
   ];
 
   pythonImportsCheck = [ "virtualenv" ];

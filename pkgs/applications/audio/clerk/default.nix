@@ -1,8 +1,18 @@
-{ lib, stdenv, fetchFromGitHub, makeWrapper, rofi, mpc_cli, perl,
-util-linux, pythonPackages, libnotify }:
+{ lib
+, stdenv
+, fetchFromGitHub
+, makeWrapper
+, rofi
+, mpc_cli
+, perl
+, util-linux
+, python3Packages
+, libnotify
+}:
 
 stdenv.mkDerivation {
-  name = "clerk-2016-10-14";
+  pname = "clerk";
+  version = "unstable-2016-10-14";
 
   src = fetchFromGitHub {
     owner = "carnager";
@@ -12,9 +22,11 @@ stdenv.mkDerivation {
   };
 
   nativeBuildInputs = [ makeWrapper ];
-  buildInputs = [ pythonPackages.mpd2 ];
+  buildInputs = [ python3Packages.mpd2 ];
 
   dontBuild = true;
+
+  strictDeps = true;
 
   installPhase = ''
     DESTDIR=$out PREFIX=/ make install
@@ -24,8 +36,8 @@ stdenv.mkDerivation {
 
   meta = with lib; {
     description = "An MPD client built on top of rofi";
-    homepage    = "https://github.com/carnager/clerk";
-    license     = licenses.mit;
+    homepage = "https://github.com/carnager/clerk";
+    license = licenses.mit;
     maintainers = with maintainers; [ anderspapitto ];
   };
 }

@@ -17,14 +17,16 @@
 
 buildPythonPackage rec {
   pname = "pymysensors";
-  version = "0.20.1";
+  version = "0.22.1";
+  format = "setuptools";
+
   disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "theolind";
     repo = pname;
     rev = version;
-    sha256 = "1hz3551ydsmd23havd0dljmvkhzjnmd28k41ws60s8ms3gzlzqfy";
+    sha256 = "sha256-n4khOQspJBeq0w+epdXYZh6I1lI1drB1JewZ6GfzVHs=";
   };
 
   propagatedBuildInputs = [
@@ -44,7 +46,9 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [ "mysensors" ];
+  pythonImportsCheck = [
+    "mysensors"
+  ];
 
   meta = with lib; {
     description = "Python API for talking to a MySensors gateway";

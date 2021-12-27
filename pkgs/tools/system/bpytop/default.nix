@@ -1,17 +1,23 @@
-{ lib, stdenv, python3Packages, fetchFromGitHub, makeWrapper, substituteAll }:
+{ lib
+, stdenv
+, python3Packages
+, fetchFromGitHub
+, makeWrapper
+}:
 
 stdenv.mkDerivation rec {
   pname = "bpytop";
-  version = "1.0.63";
+  version = "1.0.67";
 
   src = fetchFromGitHub {
     owner = "aristocratos";
     repo = pname;
     rev = "v${version}";
-    sha256 = "sha256-5KTqiPqYBDI1KFQ+2WN7QZFL/YSb+MPPWbKzJTUa8Zw=";
+    sha256 = "sha256-nvpIqX16WP9kslFo1ne5+QAZcvG+WFm5kDVOLN4C+b0=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
+
   propagatedBuildInputs = with python3Packages; [ python psutil ];
 
   dontBuild = true;
@@ -41,6 +47,6 @@ stdenv.mkDerivation rec {
     platforms = with platforms; linux ++ freebsd ++ darwin;
 
     # https://github.com/NixOS/nixpkgs/pull/94625#issuecomment-668509399
-    broken = stdenv.isDarwin;
+    broken = stdenv.isDarwin && stdenv.isx86_64;
   };
 }

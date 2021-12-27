@@ -11,7 +11,6 @@
 , yajl
 , nixosTests
 , criu
-, system
 }:
 
 let
@@ -28,6 +27,7 @@ let
     "test_pid_file.py"
     "test_preserve_fds.py"
     "test_resources"
+    "test_seccomp"
     "test_start.py"
     "test_uid_gid.py"
     "test_update.py"
@@ -37,13 +37,13 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "crun";
-  version = "0.17";
+  version = "1.4";
 
   src = fetchFromGitHub {
     owner = "containers";
     repo = pname;
     rev = version;
-    sha256 = "sha256-OdB7UXLG99ErbfSCvq87LxBy5EYkUvTfyQNG70RFbl4=";
+    sha256 = "sha256-hO3gOZ0AaSvymIDvoylHzlHscoN1+G7wDXTCP1c5uIw=";
     fetchSubmodules = true;
   };
 
@@ -51,7 +51,7 @@ stdenv.mkDerivation rec {
 
   buildInputs = [ libcap libseccomp systemd yajl ]
     # Criu currently only builds on x86_64-linux
-    ++ lib.optional (lib.elem system criu.meta.platforms) criu;
+    ++ lib.optional (lib.elem stdenv.hostPlatform.system criu.meta.platforms) criu;
 
   enableParallelBuilding = true;
 

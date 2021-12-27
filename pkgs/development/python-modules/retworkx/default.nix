@@ -1,39 +1,53 @@
 { lib
+, stdenv
 , buildPythonPackage
+, pythonOlder
 , rustPlatform
 , fetchFromGitHub
-
+, libiconv
   # Check inputs
 , pytestCheckHook
+, fixtures
+, graphviz
+, matplotlib
+, networkx
 , numpy
+, pydot
 }:
 
 buildPythonPackage rec {
   pname = "retworkx";
-  version = "0.6.0";
+  version = "0.9.0";
+  format = "pyproject";
+  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "Qiskit";
     repo = "retworkx";
     rev = version;
-    sha256 = "11n30ldg3y3y6qxg3hbj837pnbwjkqw3nxq6frds647mmmprrd20";
+    hash = "sha256-1W7DexS+ECAPsxyZAF36xcEguFkjUMX9lDBylNVPqyk=";
   };
 
   cargoDeps = rustPlatform.fetchCargoTarball {
     inherit src;
     name = "${pname}-${version}";
-    hash = "sha256-heOBK8qi2nuc/Ib+I/vLzZ1fUUD/G/KTw9d7M4Hz5O0=";
+    hash = "sha256-y5l7jqrlk3ONHefZPS31IvcaO9ttXWLM7fIUmNVwbco=";
   };
-
-  format = "pyproject";
 
   nativeBuildInputs = with rustPlatform; [ cargoSetupHook maturinBuildHook ];
 
-  # Needed b/c need to check AFTER python wheel is installed (using Rust Build, not buildPythonPackage)
-  doCheck = false;
-  doInstallCheck = true;
+  buildInputs = lib.optionals stdenv.isDarwin [ libiconv ];
 
-  installCheckInputs = [ pytestCheckHook numpy ];
+  pythonImportsCheck = [ "retworkx" ];
+  checkInputs = [
+    pytestCheckHook
+    fixtures
+    graphviz
+    matplotlib
+    networkx
+    numpy
+    pydot
+  ];
 
   preCheck = ''
     export TESTDIR=$(mktemp -d)

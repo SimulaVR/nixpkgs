@@ -7,13 +7,13 @@
 buildPythonApplication rec {
 
   pname = "catcli";
-  version = "0.6.1";
+  version = "0.7.4";
 
   src = fetchFromGitHub {
     owner = "deadc0de6";
     repo = pname;
     rev = "v${version}";
-    sha256 = "1k5xjz353ry0vbmq1ql7brb9g4wwsijzix2zh5zpd768xl8nc1z8";
+    sha256 = "1mzhfcf67dc5m0i9b216m58qg36g63if6273ch5bsckd0yrwdk8x";
   };
 
   propagatedBuildInputs = [ docopt anytree ];
@@ -25,6 +25,6 @@ buildPythonApplication rec {
     homepage = "https://github.com/deadc0de6/catcli";
     license = licenses.gpl3;
     maintainers = with maintainers; [ petersjt014 ];
-    platforms = platforms.linux;
+    platforms = platforms.all;
   };
 }

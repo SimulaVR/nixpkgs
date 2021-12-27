@@ -1,13 +1,13 @@
 { lib, fetchzip }:
 let
-  version = "2102.03";
+  version = "2110.31";
 in
 fetchzip {
   name = "cascadia-code-${version}";
 
   url = "https://github.com/microsoft/cascadia-code/releases/download/v${version}/CascadiaCode-${version}.zip";
 
-  sha256 = "076l44cyyp3cf15qyn2hzx34kzqm73d218fgwf8n69m8a1v34hs2";
+  sha256 = "sha256-SyPQtmudfogBwASTApl1hSpOPf2PLTSOzhJAJzrQ3Mg=";
 
   postFetch = ''
     mkdir -p $out/share/fonts/
@@ -18,6 +18,7 @@ fetchzip {
   meta = with lib; {
     description = "Monospaced font that includes programming ligatures and is designed to enhance the modern look and feel of the Windows Terminal";
     homepage = "https://github.com/microsoft/cascadia-code";
+    changelog = "https://github.com/microsoft/cascadia-code/raw/v${version}/FONTLOG.txt";
     license = licenses.ofl;
     maintainers = [ maintainers.marsam ];
     platforms = platforms.all;

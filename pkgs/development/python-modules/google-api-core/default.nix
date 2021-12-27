@@ -2,32 +2,31 @@
 , buildPythonPackage
 , fetchPypi
 , google-auth
-, googleapis_common_protos
+, googleapis-common-protos
 , grpcio
 , protobuf
-, pytz
+, proto-plus
 , requests
 , mock
-, pytest
 , pytest-asyncio
 , pytestCheckHook
 }:
 
 buildPythonPackage rec {
   pname = "google-api-core";
-  version = "1.25.1";
+  version = "2.1.0";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0e152ec37b8481d1be1258d95844a5a7031cd3d83d7c7046d9e9b2d807042440";
+    sha256 = "sha256-XsJ7lCs00EVZy/NnRDC7g/w9dOfTK4u9McRGbnF0C4M=";
   };
 
   propagatedBuildInputs = [
-    googleapis_common_protos
+    googleapis-common-protos
     google-auth
     grpcio
     protobuf
-    pytz
+    proto-plus
     requests
   ];
 
@@ -47,8 +46,7 @@ buildPythonPackage rec {
       helpers used by all Google API clients.
     '';
     homepage = "https://github.com/googleapis/python-api-core";
-    changelog =
-      "https://github.com/googleapis/python-api-core/blob/v${version}/CHANGELOG.md";
+    changelog = "https://github.com/googleapis/python-api-core/blob/v${version}/CHANGELOG.md";
     license = licenses.asl20;
     maintainers = with maintainers; [ SuperSandro2000 ];
   };

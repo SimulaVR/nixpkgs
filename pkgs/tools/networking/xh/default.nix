@@ -1,29 +1,58 @@
-{ stdenv, lib, rustPlatform, fetchFromGitHub, Security }:
+{ stdenv
+, lib
+, pkg-config
+, rustPlatform
+, fetchFromGitHub
+, installShellFiles
+, withNativeTls ? true
+, Security
+, libiconv
+, openssl }:
 
 rustPlatform.buildRustPackage rec {
   pname = "xh";
-  version = "0.7.0";
+  version = "0.14.1";
 
   src = fetchFromGitHub {
     owner = "ducaale";
     repo = "xh";
     rev = "v${version}";
-    sha256 = "0b7q0xbfbrhvpnxbm9bd1ncdza9k2kcmcir3qhqzb2pgsb5b5njx";
+    sha256 = "sha256-zq1jpkMcq7WHc6weht2iEFMlxIJSoDreWqJCi8F+Lxs=";
   };
 
-  cargoSha256 = "02fgqys9qf0jzs2n230pyj151v6xbm6wm2rd9qm5gsib6zaq7gfa";
+  cargoSha256 = "sha256-NcznWWMcgK4RixqvumPEQUlvIFRyYkbeTTGvjQ91ggE=";
 
-  buildInputs = lib.optional stdenv.isDarwin Security;
+  buildFeatures = lib.optional withNativeTls "native-tls";
 
-  checkFlagsArray = [ "--skip=basic_options" ];
+  nativeBuildInputs = [ installShellFiles pkg-config ];
 
+  buildInputs = lib.optionals withNativeTls
+    (if stdenv.isDarwin then [ Security libiconv ] else [ openssl ]);
+
+  # Get openssl-sys to use pkg-config
+  OPENSSL_NO_VENDOR = 1;
+
+  postInstall = ''
+    installShellCompletion --cmd xh \
+      --bash completions/xh.bash \
+      --fish completions/xh.fish \
+      --zsh completions/_xh
+
+    # https://github.com/ducaale/xh#xh-and-xhs
+    ln -s $out/bin/xh $out/bin/xhs
+  '';
+
+  # Nix build happens in sandbox without internet connectivity
+  # disable tests as some of them require internet due to nature of application
+  doCheck = false;
   doInstallCheck = true;
   postInstallCheck = ''
     $out/bin/xh --help > /dev/null
+    $out/bin/xhs --help > /dev/null
   '';
 
   meta = with lib; {
-    description = "Yet another HTTPie clone in Rust";
+    description = "Friendly and fast tool for sending HTTP requests";
     homepage = "https://github.com/ducaale/xh";
     changelog = "https://github.com/ducaale/xh/blob/v${version}/CHANGELOG.md";
     license = licenses.mit;

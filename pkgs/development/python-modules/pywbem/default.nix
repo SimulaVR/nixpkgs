@@ -1,17 +1,16 @@
 { lib, buildPythonPackage, fetchPypi, libxml2
-, m2crypto, ply, pyyaml, six, pbr, pythonOlder, isPy37
-, nocasedict, nocaselist, yamlloader, requests-mock
+, m2crypto, ply, pyyaml, six, pbr, pythonOlder, nocasedict, nocaselist, yamlloader, requests-mock
 , httpretty, lxml, mock, pytest, requests, decorator, unittest2
 , FormEncode, testfixtures, pytz
 }:
 
 buildPythonPackage rec {
   pname = "pywbem";
-  version = "1.1.2";
+  version = "1.3.0";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "9GpxbgNsXZJj2M5MvosNnEe+9pY+Qz64RD/7ZIDqmII=";
+    sha256 = "5df0af28f81891a3914a12f3a30b11b1981f7b30e09c5a42c011797e7fce9b6a";
   };
 
   propagatedBuildInputs = [

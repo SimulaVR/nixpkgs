@@ -1,17 +1,17 @@
-{ lib, jdk, buildPythonPackage, fetchPypi, six, py4j }:
+{ lib, jdk8, buildPythonPackage, fetchPypi, six, py4j }:
 
 buildPythonPackage rec {
   pname = "databricks-connect";
-  version = "7.3.8";
+  version = "9.1.2";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0c0f036cf30e00fdc47c983875c72d16a3073ae9be9bcf39371514280f00a82d";
+    sha256 = "9672aae60b299de58a527f320df45769cadf436398e21f4ce73424a25badb7a7";
   };
 
   sourceRoot = ".";
 
-  propagatedBuildInputs = [ py4j six jdk ];
+  propagatedBuildInputs = [ py4j six jdk8 ];
 
   # requires network access
   doCheck = false;

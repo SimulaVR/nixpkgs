@@ -1,7 +1,8 @@
 { lib, stdenv, fetchurl, unzip, makeWrapper, jre }:
 
 stdenv.mkDerivation rec {
-  name = "subgit-3.3.10";
+  pname = "subgit";
+  version = "3.3.12";
 
   meta = {
     description = "A tool for a smooth, stress-free SVN to Git migration";
@@ -20,7 +21,7 @@ stdenv.mkDerivation rec {
   '';
 
   src = fetchurl {
-    url = "https://subgit.com/download/${name}.zip";
-    sha256 = "1z7cmaghfy5yjs50b3y6av9h2d6xmpamyxql7vvr3dy6kflvv8fk";
+    url = "https://subgit.com/download/subgit-${version}.zip";
+    sha256 = "sha256-Mdjm7rkF/iw3HBftCgXrbFCG00g/RowFcF/oeKLyzL0=";
   };
 }

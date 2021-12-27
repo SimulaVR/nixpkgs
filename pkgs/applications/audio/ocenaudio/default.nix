@@ -5,27 +5,27 @@
 , dpkg
 , qt5
 , libjack2
-, alsaLib
+, alsa-lib
 , bzip2
 , libpulseaudio }:
 
 stdenv.mkDerivation rec {
   pname = "ocenaudio";
-  version = "3.9.6";
+  version = "3.11.1";
 
   src = fetchurl {
     url = "https://www.ocenaudio.com/downloads/index.php/ocenaudio_debian9_64.deb?version=${version}";
-    sha256 = "07r49133kk99ya4grwby3admy892mkk9cfxz3wh0v81aznhpw4jg";
+    sha256 = "sha256-m8sKu2QuEyCWQ975vDfLVWKgU7ydEp5/vRYRO3z1yio=";
   };
-
 
   nativeBuildInputs = [
     autoPatchelfHook
     qt5.qtbase
+    qt5.wrapQtAppsHook
     libjack2
     libpulseaudio
     bzip2
-    alsaLib
+    alsa-lib
   ];
 
   buildInputs = [ dpkg ];
@@ -33,7 +33,6 @@ stdenv.mkDerivation rec {
   dontUnpack = true;
   dontBuild = true;
   dontStrip = true;
-  dontWrapQtApps = true;
 
   installPhase = ''
     mkdir -p $out

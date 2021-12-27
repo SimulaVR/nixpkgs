@@ -2,11 +2,11 @@
 , glib, libGLU, libGL, libpulseaudio, zlib, dbus, fontconfig, freetype
 , gtk3, pango
 , makeWrapper , python2Packages, lib
-, lsof, curl, libuuid, cups, mesa, lzma, libxkbcommon
+, lsof, curl, libuuid, cups, mesa, xz, libxkbcommon
 }:
 
 let
-  all_data = builtins.fromJSON (builtins.readFile ./data.json);
+  all_data = lib.importJSON ./data.json;
   system_map = {
     # i686-linux = "i386"; Uncomment if enpass 6 becomes available on i386
     x86_64-linux = "amd64";
@@ -38,7 +38,7 @@ let
     curl
     libuuid
     cups
-    lzma
+    xz
     libxkbcommon
   ]);
   package = stdenv.mkDerivation {
@@ -61,7 +61,6 @@ let
 
     nativeBuildInputs = [ makeWrapper ];
     buildInputs = [dpkg];
-    phases = [ "unpackPhase" "installPhase" ];
 
     unpackPhase = "dpkg -X $src .";
     installPhase=''

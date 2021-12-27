@@ -1,9 +1,7 @@
-{ stdenv
-, lib
+{ lib
 , buildPythonPackage
 , capstone
-, fetchpatch
-, fetchPypi
+, stdenv
 , setuptools
 }:
 

@@ -1,4 +1,5 @@
-{ lib, stdenv
+{ lib
+, stdenv
 , fetchFromGitHub
 , gtk3
 , breeze-icons
@@ -8,13 +9,13 @@
 
 stdenv.mkDerivation rec {
   pname = "luna-icons";
-  version = "1.0";
+  version = "1.8";
 
   src = fetchFromGitHub {
     owner = "darkomarko42";
     repo = pname;
     rev = version;
-    sha256 = "1gggsd7scf15vrpgzvskx4p3jifnjdx0aqndqhvpc6ksdbh3nzqd";
+    sha256 = "1c317ac43ff70sxn1syx20qhs4nkccv6hbf69fmi3acswqsll1z4";
   };
 
   nativeBuildInputs = [

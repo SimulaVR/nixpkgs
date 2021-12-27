@@ -1,19 +1,21 @@
-{ lib, buildGoModule, fetchurl
+{ lib, buildGoModule, fetchFromSourcehut
 , ncurses, notmuch, scdoc
 , python3, w3m, dante
 }:
 
 buildGoModule rec {
   pname = "aerc";
-  version = "0.5.2";
+  version = "0.6.0";
 
-  src = fetchurl {
-    url = "https://git.sr.ht/~sircmpwn/aerc/archive/${version}.tar.gz";
-    sha256 = "h7kiRA5TuZ8mDSMymWU33stFLIOMd06TQLYzKW+faO4=";
+  src = fetchFromSourcehut {
+    owner = "~rjarry";
+    repo = pname;
+    rev = version;
+    sha256 = "sha256-RaHigTp1YGkjQ46gFLhKcJuajekcCgfozu0ndCNq5Ac=";
   };
 
   runVend = true;
-  vendorSha256 = "9PXdUH0gu8PGaKlRJCUF15W1/LxA+sv3Pwl2UnjYxWY=";
+  vendorSha256 = "sha256-A2MZzTYzGuZLFENn9OBIBBreJan+b3RKOEu5bQcDwS8=";
 
   doCheck = false;
 

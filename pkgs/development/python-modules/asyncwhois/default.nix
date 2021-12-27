@@ -6,23 +6,26 @@
 , pytestCheckHook
 , pythonOlder
 , tldextract
+, whodap
 }:
 
 buildPythonPackage rec {
   pname = "asyncwhois";
-  version = "0.2.4";
+  version = "0.4.1";
+
   disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "pogzyb";
     repo = pname;
     rev = "v${version}";
-    sha256 = "17w007hjnpggj6jvkv8wxwllxk6mir1q2nhw0dqg7glm4lfbx8kr";
+    sha256 = "sha256-mKKN2IuveOE+3mZGS5LFa15lJPA9y7KgLd0FoRuEMH0=";
   };
 
   propagatedBuildInputs = [
     aiodns
     tldextract
+    whodap
   ];
 
   checkInputs = [

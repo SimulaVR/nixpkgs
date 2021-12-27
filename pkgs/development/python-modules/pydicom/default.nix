@@ -1,11 +1,12 @@
 { lib
+, stdenv
 , buildPythonPackage
 , fetchFromGitHub
-, isPy27
-, pytestrunner
+, pythonOlder
 , pytestCheckHook
 , numpy
 , pillow
+, setuptools
 }:
 
 let
@@ -19,7 +20,7 @@ let
     sha256 = "sha256-iExy+mUs1uqs/u9N6btlqyP6/TvoPVsuOuzs56zZAS8=";
   };
 
-  # Pydicom needs pydicom-data to run some tests. If these files are downloaded
+  # Pydicom needs pydicom-data to run some tests. If these files aren't downloaded
   # before the package creation, it'll try to download during the checkPhase.
   test_data = fetchFromGitHub {
     owner = "${pname}";
@@ -31,11 +32,11 @@ let
 in
 buildPythonPackage {
   inherit pname version src;
-  disabled = isPy27;
+  disabled = pythonOlder "3.6";
 
-  propagatedBuildInputs = [ numpy pillow ];
+  propagatedBuildInputs = [ numpy pillow setuptools ];
 
-  checkInputs = [ pytestrunner pytestCheckHook ];
+  checkInputs = [ pytestCheckHook ];
 
   # Setting $HOME to prevent pytest to try to create a folder inside
   # /homeless-shelter which is read-only.
@@ -49,6 +50,12 @@ buildPythonPackage {
   # This test try to remove a dicom inside $HOME/.pydicom/data/ and download it again.
   disabledTests = [
     "test_fetch_data_files"
+  ] ++ lib.optionals stdenv.isAarch64 [
+    # https://github.com/pydicom/pydicom/issues/1386
+    "test_array"
+  ] ++ lib.optionals stdenv.isDarwin [
+    # flaky, hard to reproduce failure outside hydra
+    "test_time_check"
   ];
 
   meta = with lib; {

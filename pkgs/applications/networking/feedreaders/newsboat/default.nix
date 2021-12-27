@@ -3,27 +3,23 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "newsboat";
-  version = "2.22.1";
+  version = "2.25";
 
   src = fetchFromGitHub {
     owner = "newsboat";
     repo = "newsboat";
     rev = "r${version}";
-    sha256 = "1j3z34dhqw0f1v6v2lfwcvzqnm2kr2940bgxibfi0npacp74izh3";
+    sha256 = "sha256-TAnGDxTKYl4niouS6nYdJDaIngAPsPHr9Bw9L3cR2Xk=";
   };
 
-  cargoSha256 = "08ywaka1lib8yrqjmfx1i37f7b33y3i6jj7f50pwhw8n6lr9f7lc";
+  cargoSha256 = "sha256-MxoyYBLbrCuLVa0p8JrYKSKu2oFPnXMwab42lhhAu48=";
 
-  postPatch = ''
-    substituteInPlace Makefile --replace "|| true" ""
-  ''
-    # TODO: Check if that's still needed
-    + lib.optionalString stdenv.isDarwin ''
-      # Allow other ncurses versions on Darwin
-      substituteInPlace config.sh \
-        --replace "ncurses5.4" "ncurses"
-    ''
-  ;
+  # TODO: Check if that's still needed
+  postPatch = lib.optionalString stdenv.isDarwin ''
+    # Allow other ncurses versions on Darwin
+    substituteInPlace config.sh \
+      --replace "ncurses5.4" "ncurses"
+  '';
 
   nativeBuildInputs = [
     pkg-config

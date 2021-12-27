@@ -85,7 +85,7 @@ in buildFHSUserEnv rec {
   targetPkgs = pkgs: with pkgs; [
     steamPackages.steam
     # License agreement
-    gnome3.zenity
+    gnome.zenity
   ] ++ commonTargetPkgs pkgs;
 
   multiPkgs = pkgs: with pkgs; [
@@ -98,6 +98,12 @@ in buildFHSUserEnv rec {
     xorg.libXfixes
     libGL
     libva
+    pipewire.lib
+
+    # steamwebhelper
+    harfbuzz
+    libthai
+    pango
 
     # Not formally in runtime but needed by some games
     at-spi2-atk
@@ -105,13 +111,15 @@ in buildFHSUserEnv rec {
     gst_all_1.gstreamer
     gst_all_1.gst-plugins-ugly
     gst_all_1.gst-plugins-base
+    json-glib # paradox launcher (Stellaris)
     libdrm
+    libxkbcommon # paradox launcher
     mono
     xorg.xkeyboardconfig
     xorg.libpciaccess
     udev # shadow of the tomb raider
 
-    ## screeps dependencies
+    # screeps dependencies
     gtk3
     dbus
     zlib
@@ -120,7 +128,6 @@ in buildFHSUserEnv rec {
     cairo
     freetype
     gdk-pixbuf
-    pango
     fontconfig
 
     # friends options won't display "Launch Game" without it
@@ -133,20 +140,28 @@ in buildFHSUserEnv rec {
     libGLU
     libuuid
     libbsd
-    alsaLib
+    alsa-lib
+
+    # Loop Hero
+    libidn2
+    libpsl
+    nghttp2.lib
+    openssl_1_1
+    rtmpdump
 
     # needed by getcap for vr startup
     libcap
 
     # dependencies for mesa drivers, needed inside pressure-vessel
     mesa.drivers
+    mesa.llvmPackages.llvm.lib
+    vulkan-loader
     expat
     wayland
-    xlibs.libxcb
-    xlibs.libXdamage
-    xlibs.libxshmfence
-    xlibs.libXxf86vm
-    llvm_11.lib
+    xorg.libxcb
+    xorg.libXdamage
+    xorg.libxshmfence
+    xorg.libXxf86vm
     libelf
   ] ++ (if (!nativeOnly) then [
     (steamPackages.steam-runtime-wrapped.override {
@@ -172,12 +187,11 @@ in buildFHSUserEnv rec {
     xorg.libICE
     gnome2.GConf
     freetype
-    (curl.override { gnutlsSupport = true; sslSupport = false; })
+    (curl.override { gnutlsSupport = true; opensslSupport = false; })
     nspr
     nss
     fontconfig
     cairo
-    pango
     expat
     dbus
     cups
@@ -200,11 +214,9 @@ in buildFHSUserEnv rec {
     SDL
     SDL2_image
     glew110
-    openssl
     libidn
     tbb
     wayland
-    libxkbcommon
 
     # Other things from runtime
     flac
@@ -232,7 +244,14 @@ in buildFHSUserEnv rec {
     libvdpau
   ] ++ steamPackages.steam-runtime-wrapped.overridePkgs) ++ extraLibraries pkgs;
 
-  extraBuildCommands = if (!nativeOnly) then ''
+  extraBuildCommands = ''
+    if [ -f $out/usr/share/vulkan/icd.d/nvidia_icd.json ]; then
+      cp $out/usr/share/vulkan/icd.d/nvidia_icd{,32}.json
+      nvidia32Lib=$(realpath $out/lib32/libGLX_nvidia.so.0 | cut -d'/' -f-4)
+      escapedNvidia32Lib="''${nvidia32Lib//\//\\\/}"
+      sed -i "s/\/nix\/store\/.*\/lib\/libGLX_nvidia\.so\.0/$escapedNvidia32Lib\/lib\/libGLX_nvidia\.so\.0/g" $out/usr/share/vulkan/icd.d/nvidia_icd32.json
+    fi
+  '' + (if (!nativeOnly) then ''
     mkdir -p steamrt
     ln -s ../lib/steam-runtime steamrt/${steam-runtime-wrapped.arch}
     ${lib.optionalString (steam-runtime-wrapped-i686 != null) ''
@@ -245,7 +264,7 @@ in buildFHSUserEnv rec {
     ${lib.optionalString (steam-runtime-wrapped-i686 != null) ''
       ln -s /usr/lib32/libbz2.so usr/lib32/libbz2.so.1.0
     ''}
-  '';
+  '');
 
   extraInstallCommands = ''
     mkdir -p $out/share/applications

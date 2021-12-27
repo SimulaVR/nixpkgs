@@ -1,7 +1,19 @@
-{ stdenv, lib, rustPlatform, fetchFromGitHub, openssl, pkg-config, Security
-, sqliteSupport ? true, sqlite
-, postgresqlSupport ? true, postgresql
-, mysqlSupport ? true, mysql, zlib, libiconv
+{ lib
+, sqliteSupport ? true
+, postgresqlSupport ? true
+, mysqlSupport ? true
+, rustPlatform
+, fetchCrate
+, installShellFiles
+, pkg-config
+, openssl
+, stdenv
+, Security
+, libiconv
+, sqlite
+, postgresql
+, mariadb
+, zlib
 }:
 
 assert lib.assertMsg (sqliteSupport == true || postgresqlSupport == true || mysqlSupport == true)
@@ -9,52 +21,51 @@ assert lib.assertMsg (sqliteSupport == true || postgresqlSupport == true || mysq
 
 let
   inherit (lib) optional optionals optionalString;
-  features = optional sqliteSupport "sqlite"
-    ++ optional postgresqlSupport "postgres"
-    ++ optional mysqlSupport "mysql";
 in
 
 rustPlatform.buildRustPackage rec {
   pname = "diesel-cli";
-  version = "1.4.0";
+  version = "1.4.1";
 
-  src = fetchFromGitHub {
-    owner = "diesel-rs";
-    repo = "diesel";
-    rev = "v${version}";
-    sha256 = "0wp4hvpl9cf8hw1jyz3z476k5blrh6srfpv36dw10bj126rz9pvb";
+  src = fetchCrate {
+    inherit version;
+    crateName = "diesel_cli";
+    sha256 = "sha256-mRdDc4fHMkwkszY+2l8z1RSNMEQnrWI5/Y0Y2W+guQE=";
   };
 
-  patches = [
-    # Allow warnings to fix many instances of `error: trait objects without an explicit `dyn` are deprecated`
-    #
-    # Remove this after https://github.com/diesel-rs/diesel/commit/9004d1c3fa12aaee84986bd3d893002491373f8c
-    # is in a release.
-    ./allow-warnings.patch
-  ];
+  cargoSha256 = "sha256-sQ762Ss31sA5qALHzwkvwbfRXo00cCtqzQyoz3/zf6I=";
 
-  cargoBuildFlags = [ "--no-default-features" "--features" "${lib.concatStringsSep "," features}" ];
-  cargoPatches = [ ./cargo-lock.patch ];
-  cargoSha256 = "1vbb7r0dpmq8363i040bkhf279pz51c59kcq9v5qr34hs49ish8g";
-
-  nativeBuildInputs = [ pkg-config ];
+  nativeBuildInputs = [ installShellFiles pkg-config ];
 
   buildInputs = [ openssl ]
     ++ optional stdenv.isDarwin Security
     ++ optional (stdenv.isDarwin && mysqlSupport) libiconv
     ++ optional sqliteSupport sqlite
     ++ optional postgresqlSupport postgresql
-    ++ optionals mysqlSupport [ mysql zlib ];
+    ++ optionals mysqlSupport [ mariadb zlib ];
 
-  buildAndTestSubdir = "diesel_cli";
+  buildNoDefaultFeatures = true;
+  buildFeatures = optional sqliteSupport "sqlite"
+    ++ optional postgresqlSupport "postgres"
+    ++ optional mysqlSupport "mysql";
 
-  checkPhase = optionalString sqliteSupport ''
-    (cd diesel_cli && cargo check --features sqlite)
+  checkPhase = ''
+    runHook preCheck
+  '' + optionalString sqliteSupport ''
+    cargo check --features sqlite
+  '' + optionalString postgresqlSupport ''
+    cargo check --features postgres
+  '' + optionalString mysqlSupport ''
+    cargo check --features mysql
+  '' + ''
+    runHook postCheck
   '';
 
-  doInstallCheck = true;
-  installCheckPhase = ''
-    $out/bin/diesel --version
+  postInstall = ''
+    installShellCompletion --cmd diesel \
+      --bash <($out/bin/diesel completions bash) \
+      --fish <($out/bin/diesel completions fish) \
+      --zsh <($out/bin/diesel completions zsh)
   '';
 
   # Fix the build with mariadb, which otherwise shows "error adding symbols:
@@ -66,5 +77,6 @@ rustPlatform.buildRustPackage rec {
     homepage = "https://github.com/diesel-rs/diesel/tree/master/diesel_cli";
     license = with licenses; [ mit asl20 ];
     maintainers = with maintainers; [ ];
+    mainProgram = "diesel";
   };
 }

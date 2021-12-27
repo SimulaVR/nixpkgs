@@ -18,7 +18,7 @@
 
 let
   pname = "hover";
-  version = "0.46.2";
+  version = "0.46.6";
 
   libs = with xorg; [
     libX11.dev
@@ -41,18 +41,18 @@ let
       homepage = "https://github.com/go-flutter-desktop/hover";
       license = licenses.bsd3;
       platforms = platforms.linux;
-      maintainers = [ maintainers.ericdallo maintainers.thiagokokada];
+      maintainers = with maintainers; [ ericdallo flexagoon ];
     };
 
     subPackages = [ "." ];
 
-    vendorSha256 = "0hdh4vwzvwlarjzg6pv9dp665r9px9yplfjpgyyfjyy5b9sxl795";
+    vendorSha256 = "0b4h7sr9ldvgaq2rz8hyzqv1b5gk8gkc9yxc8m3yzh2fxzznkr87";
 
     src = fetchFromGitHub {
       rev = "v${version}";
       owner = "go-flutter-desktop";
       repo = pname;
-      sha256 = "1gmsv7hmj7zzfwbz50az3kvgzqvj0jn8i2pv7sjyl9dx1bavi5g3";
+      sha256 = "127hz08rvskl6hayn7dwd78g9lz83w7bmhdamk1fhwvay396q9qk";
     };
 
     nativeBuildInputs = [ addOpenGLRunpath makeWrapper ];

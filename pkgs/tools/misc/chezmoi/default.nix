@@ -2,21 +2,21 @@
 
 buildGoModule rec {
   pname = "chezmoi";
-  version = "1.8.11";
+  version = "2.9.2";
 
   src = fetchFromGitHub {
     owner = "twpayne";
     repo = "chezmoi";
     rev = "v${version}";
-    sha256 = "sha256-aWq36wQFxAyORifi5/9MOnqmR5FRyDAQj1tVFqoiFvA=";
+    sha256 = "sha256-tGmyn6RCr+1JiSAaoSDzk9rG2+y8G2Eot3srXEJ0Re0=";
   };
 
-  vendorSha256 = "sha256-ASTPb8Va3Gl/VtmPJIdlnlU3OspAxzZ5iSHVcZOh8CY=";
+  vendorSha256 = "sha256-jaEaVfPlYbmQ998KwZm8PUfbNlPEIr1lX5fx90jcqV4=";
 
   doCheck = false;
 
-  buildFlagsArray = [
-    "-ldflags=-s -w -X main.version=${version} -X main.builtBy=nixpkgs"
+  ldflags = [
+    "-s" "-w" "-X main.version=${version}" "-X main.builtBy=nixpkgs"
   ];
 
   nativeBuildInputs = [ installShellFiles ];

@@ -119,6 +119,18 @@ specialMount() {
 }
 source @earlyMountScript@
 
+# Copy initrd secrets from /.initrd-secrets to their actual destinations
+if [ -d "/.initrd-secrets" ]; then
+    #
+    # Secrets are named by their full destination pathname and stored
+    # under /.initrd-secrets/
+    #
+    for secret in $(cd "/.initrd-secrets"; find . -type f); do
+        mkdir -p $(dirname "/$secret")
+        cp "/.initrd-secrets/$secret" "$secret"
+    done
+fi
+
 # Log the script output to /dev/kmsg or /run/log/stage-1-init.log.
 mkdir -p /tmp
 mkfifo /tmp/stage-1-init.log.fifo
@@ -542,7 +554,7 @@ while read -u 3 mountPoint; do
     # If copytoram is enabled: skip mounting the ISO and copy its content to a tmpfs.
     if [ -n "$copytoram" ] && [ "$device" = /dev/root ] && [ "$mountPoint" = /iso ]; then
       fsType=$(blkid -o value -s TYPE "$device")
-      fsSize=$(blockdev --getsize64 "$device")
+      fsSize=$(blockdev --getsize64 "$device" || stat -Lc '%s' "$device")
 
       mkdir -p /tmp-iso
       mount -t "$fsType" /dev/root /tmp-iso
@@ -614,11 +626,16 @@ echo /sbin/modprobe > /proc/sys/kernel/modprobe
 
 
 # Start stage 2.  `switch_root' deletes all files in the ramfs on the
-# current root.  Note that $stage2Init might be an absolute symlink,
-# in which case "-e" won't work because we're not in the chroot yet.
-if [ ! -e "$targetRoot/$stage2Init" ] && [ ! -L "$targetRoot/$stage2Init" ] ; then
-    echo "stage 2 init script ($targetRoot/$stage2Init) not found"
-    fail
+# current root.  The path has to be valid in the chroot not outside.
+if [ ! -e "$targetRoot/$stage2Init" ]; then
+    stage2Check=${stage2Init}
+    while [ "$stage2Check" != "${stage2Check%/*}" ] && [ ! -L "$targetRoot/$stage2Check" ]; do
+        stage2Check=${stage2Check%/*}
+    done
+    if [ ! -L "$targetRoot/$stage2Check" ]; then
+        echo "stage 2 init script ($targetRoot/$stage2Init) not found"
+        fail
+    fi
 fi
 
 mkdir -m 0755 -p $targetRoot/proc $targetRoot/sys $targetRoot/dev $targetRoot/run

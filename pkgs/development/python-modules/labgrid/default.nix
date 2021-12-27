@@ -22,16 +22,18 @@
 
 buildPythonPackage rec {
   pname = "labgrid";
-  version = "0.3.1";
+  version = "0.4.1";
 
   src = fetchFromGitHub {
     owner = "labgrid-project";
     repo = "labgrid";
     rev = "v${version}";
-    sha256 = "15298prs2f4wiyn8lf475qicp3y22lcjdcpwp2fmrya642vnr6w5";
+    sha256 = "0ih04lh1q3dysps4vfmk2rhqqrsimssadsxvbxdsnim2yihrrw47";
   };
 
   patches = [
+    # Pyserial within Nixpkgs already includes the necessary fix, remove the
+    # pyserial version check from labgrid.
     ./0001-serialdriver-remove-pyserial-version-check.patch
   ];
 
@@ -61,11 +63,6 @@ buildPythonPackage rec {
     pytestCheckHook
     pytest-mock
     pytest-dependency
-  ];
-
-  disabledTests = [
-    "docker"
-    "sshmanager"
   ];
 
   meta = with lib; {

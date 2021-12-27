@@ -1,44 +1,67 @@
-{ lib, buildPythonPackage, fetchFromGitHub, pythonOlder, black, isort
-, pytestCheckHook, pyyaml, typing-extensions, typing-inspect, dataclasses }:
+{ lib
+, black
+, buildPythonPackage
+, dataclasses
+, fetchFromGitHub
+, hypothesis
+, isort
+, pytest
+, python
+, pythonOlder
+, pyyaml
+, typing-extensions
+, typing-inspect
+}:
 
 buildPythonPackage rec {
   pname = "libcst";
-  version = "0.3.13";
+  version = "0.3.21";
+  format = "setuptools";
 
-  # Some files for tests missing from PyPi
-  # https://github.com/Instagram/LibCST/issues/331
+  disabled = pythonOlder "3.6";
+
   src = fetchFromGitHub {
     owner = "instagram";
     repo = pname;
     rev = "v${version}";
-    sha256 = "0pbddjrsqj641mr6zijk2phfn15dampbx268zcws4bhhhnrxlj65";
+    sha256 = "063bl21gyyd25i2v0j6kz29cxxdfhng2nins4i2qblmac90f2nqy";
   };
 
-  disabled = pythonOlder "3.6";
+  propagatedBuildInputs = [
+    hypothesis
+    typing-extensions
+    typing-inspect
+    pyyaml
+  ] ++ lib.optional (pythonOlder "3.7") [
+    dataclasses
+  ];
 
-  propagatedBuildInputs = [ pyyaml typing-inspect ]
-    ++ lib.optional (pythonOlder "3.7") dataclasses;
+  checkInputs = [
+    black
+    isort
+    pytest
+  ];
 
-  checkInputs = [ black isort pytestCheckHook ];
-
-  # https://github.com/Instagram/LibCST/issues/346
-  # https://github.com/Instagram/LibCST/issues/347
   preCheck = ''
-    python -m libcst.codegen.generate visitors
-    python -m libcst.codegen.generate return_types
-    rm libcst/tests/test_fuzz.py
-    rm libcst/tests/test_pyre_integration.py
-    rm libcst/metadata/tests/test_full_repo_manager.py
-    rm libcst/metadata/tests/test_type_inference_provider.py
+    ${python.interpreter} -m libcst.codegen.generate visitors
+    ${python.interpreter} -m libcst.codegen.generate return_types
+    # Can't run all tests due to circular dependency on hypothesmith -> libcst
+    rm -r {libcst/tests,libcst/codegen/tests,libcst/m*/tests}
   '';
 
-  pythonImportsCheck = [ "libcst" ];
+  disabledTests = [
+    # No files are generated
+    "test_codemod_formatter_error_input"
+  ];
+
+  pythonImportsCheck = [
+    "libcst"
+  ];
 
   meta = with lib; {
-    description =
-      "A Concrete Syntax Tree (CST) parser and serializer library for Python.";
+    description = "Concrete Syntax Tree (CST) parser and serializer library for Python";
     homepage = "https://github.com/Instagram/libcst";
     license = with licenses; [ mit asl20 psfl ];
-    maintainers = with maintainers; [ maintainers.ruuda ];
+    maintainers = with maintainers; [ ruuda SuperSandro2000 ];
   };
 }

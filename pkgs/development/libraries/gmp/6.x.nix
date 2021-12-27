@@ -12,10 +12,11 @@
 let inherit (lib) optional; in
 
 let self = stdenv.mkDerivation rec {
-  name = "gmp-6.2.1";
+  pname = "gmp";
+  version = "6.2.1";
 
   src = fetchurl { # we need to use bz2, others aren't in bootstrapping stdenv
-    urls = [ "mirror://gnu/gmp/${name}.tar.bz2" "ftp://ftp.gmplib.org/pub/${name}/${name}.tar.bz2" ];
+    urls = [ "mirror://gnu/gmp/gmp-${version}.tar.bz2" "ftp://ftp.gmplib.org/pub/gmp-${version}/gmp-${version}.tar.bz2" ];
     sha256 = "0z2ddfiwgi0xbf65z4fg4hqqzlhv0cc6hdcswf3c6n21xdmk5sga";
   };
 
@@ -46,7 +47,7 @@ let self = stdenv.mkDerivation rec {
     # to build a .dll on windows, we need --disable-static + --enable-shared
     # see https://gmplib.org/manual/Notes-for-Particular-Systems.html
     ++ optional (!withStatic && stdenv.hostPlatform.isWindows) "--disable-static --enable-shared"
-    ;
+    ++ optional (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) "--disable-assembly";
 
   doCheck = true; # not cross;
 
@@ -82,7 +83,7 @@ let self = stdenv.mkDerivation rec {
       '';
 
     platforms = platforms.all;
-    maintainers = [ maintainers.peti maintainers.vrthra ];
+    maintainers = [ maintainers.vrthra ];
   };
 };
   in self

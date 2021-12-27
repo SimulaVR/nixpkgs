@@ -1,19 +1,28 @@
-{ lib, buildGoModule, fetchFromGitHub, openssh, makeWrapper }:
+{ lib
+, buildGoModule
+, fetchFromGitHub
+, openssh
+, makeWrapper
+}:
 
 buildGoModule rec {
   pname = "assh";
-  version = "2.11.0";
+  version = "2.12.0";
 
   src = fetchFromGitHub {
     repo = "advanced-ssh-config";
     owner = "moul";
     rev = "v${version}";
-    sha256 = "sha256-/StB5yee9sbkebuJt6JDI+bp52NG0bBhprzmdepL+ek=";
+    sha256 = "sha256-FqxxNTsZVmCsIGNHRWusFP2gba2+geqBubw+6PeR75c=";
   };
 
-  vendorSha256 = "sha256-6OAsO7zWAgPfQWD9k+nYH7hnDDUlKIjTB61ivvoubn0=";
+  vendorSha256 = "sha256-AYBwuRSeam5i2gex9PSG9Qk+FHdEhIpY250CJo01cFE=";
 
   doCheck = false;
+
+  ldflags = [
+    "-s" "-w" "-X moul.io/assh/v2/pkg/version.Version=${version}"
+  ];
 
   nativeBuildInputs = [ makeWrapper ];
 

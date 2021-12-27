@@ -194,7 +194,7 @@ services.httpd = {
   <para>
    This is useful if you want to generate a wildcard certificate, since
    ACME servers will only hand out wildcard certs over DNS validation.
-   There a number of supported DNS providers and servers you can utilise,
+   There are a number of supported DNS providers and servers you can utilise,
    see the <link xlink:href="https://go-acme.github.io/lego/dns/">lego docs</link>
    for provider/server specific configuration values. For the sake of these
    docs, we will provide a fully self-hosted example using bind.
@@ -253,7 +253,7 @@ chmod 400 /var/lib/secrets/certs.secret
 </programlisting>
 
   <para>
-   Now you're all set to generate certs! You should monitor the first invokation
+   Now you're all set to generate certs! You should monitor the first invocation
    by running <literal>systemctl start acme-example.com.service &amp;
    journalctl -fu acme-example.com.service</literal> and watching its log output.
   </para>

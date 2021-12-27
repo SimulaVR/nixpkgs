@@ -1,6 +1,6 @@
-{ lib, stdenv
+{ stdenv
+, lib
 , fetchurl
-, fetchpatch
 , gettext
 , meson
 , ninja
@@ -8,7 +8,6 @@
 , asciidoc
 , gobject-introspection
 , python3
-, gtk-doc
 , docbook-xsl-nons
 , docbook_xml_dtd_45
 , libxml2
@@ -18,10 +17,11 @@
 , sqlite
 , libxslt
 , libstemmer
-, gnome3
+, gnome
 , icu
 , libuuid
 , libsoup
+, libsoup_3
 , json-glib
 , systemd
 , dbus
@@ -30,26 +30,19 @@
 
 stdenv.mkDerivation rec {
   pname = "tracker";
-  version = "3.0.1";
+  version = "3.2.1";
 
   outputs = [ "out" "dev" "devdoc" ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "1rhcs75axga7p7hl37h6jzb2az89jddlcwc7ykrnb2khyhka78rr";
+    sha256 = "GEfgiznm5h2EhzWqH5f32WwDggFlP6DXy56Bs365wDo=";
   };
 
   patches = [
     (substituteAll {
       src = ./fix-paths.patch;
       inherit asciidoc;
-    })
-
-    # Fix consistency error with sqlite 3.34
-    # https://gitlab.gnome.org/GNOME/tracker/merge_requests/353
-    (fetchpatch {
-      url = "https://gitlab.gnome.org/GNOME/tracker/commit/040e22d005985a19a0dc435a7631f91700804ce4.patch";
-      sha256 = "5OZj17XY8ZnXfMMim25HvGfFKUlsVlVHOUjZKfBKHcs=";
     })
   ];
 
@@ -63,7 +56,6 @@ stdenv.mkDerivation rec {
     libxslt
     wrapGAppsNoGuiHook
     gobject-introspection
-    gtk-doc
     docbook-xsl-nons
     docbook_xml_dtd_45
     python3 # for data-generators
@@ -77,13 +69,15 @@ stdenv.mkDerivation rec {
     sqlite
     icu
     libsoup
+    libsoup_3
     libuuid
     json-glib
     libstemmer
   ];
 
-  checkInputs = [
-    python3.pkgs.pygobject3
+  checkInputs = with python3.pkgs; [
+    pygobject3
+    tappy
   ];
 
   mesonFlags = [
@@ -97,6 +91,7 @@ stdenv.mkDerivation rec {
     patchShebangs utils/data-generators/cc/generate
     patchShebangs tests/functional-tests/test-runner.sh.in
     patchShebangs tests/functional-tests/*.py
+    patchShebangs examples/python/endpoint.py
   '';
 
   preCheck = ''
@@ -127,7 +122,7 @@ stdenv.mkDerivation rec {
   '';
 
   passthru = {
-    updateScript = gnome3.updateScript {
+    updateScript = gnome.updateScript {
       packageName = pname;
       versionPolicy = "none";
     };

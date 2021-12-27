@@ -9,6 +9,13 @@ let
     RAILS_ENV = "production";
     NODE_ENV = "production";
 
+    # mastodon-web concurrency.
+    WEB_CONCURRENCY = toString cfg.webProcesses;
+    MAX_THREADS = toString cfg.webThreads;
+
+    # mastodon-streaming concurrency.
+    STREAMING_CLUSTER_NUM = toString cfg.streamingProcesses;
+
     DB_USER = cfg.database.user;
 
     REDIS_HOST = cfg.redis.host;
@@ -31,6 +38,8 @@ let
   // (if cfg.smtp.authenticate then { SMTP_LOGIN  = cfg.smtp.user; } else {})
   // cfg.extraConfig;
 
+  systemCallsList = [ "@cpu-emulation" "@debug" "@keyring" "@ipc" "@mount" "@obsolete" "@privileged" "@setuid" ];
+
   cfgService = {
     # User and group
     User = cfg.user;
@@ -41,10 +50,37 @@ let
     # Logs directory and mode
     LogsDirectory = "mastodon";
     LogsDirectoryMode = "0750";
+    # Proc filesystem
+    ProcSubset = "pid";
+    ProtectProc = "invisible";
     # Access write directories
     UMask = "0027";
+    # Capabilities
+    CapabilityBoundingSet = "";
+    # Security
+    NoNewPrivileges = true;
     # Sandboxing
+    ProtectSystem = "strict";
+    ProtectHome = true;
     PrivateTmp = true;
+    PrivateDevices = true;
+    PrivateUsers = true;
+    ProtectClock = true;
+    ProtectHostname = true;
+    ProtectKernelLogs = true;
+    ProtectKernelModules = true;
+    ProtectKernelTunables = true;
+    ProtectControlGroups = true;
+    RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" "AF_NETLINK" ];
+    RestrictNamespaces = true;
+    LockPersonality = true;
+    MemoryDenyWriteExecute = false;
+    RestrictRealtime = true;
+    RestrictSUIDSGID = true;
+    RemoveIPC = true;
+    PrivateMounts = true;
+    # System Call Filtering
+    SystemCallArchitectures = "native";
   };
 
   envFile = pkgs.writeText "mastodon.env" (lib.concatMapStrings (s: s + "\n") (
@@ -121,17 +157,40 @@ in {
         type = lib.types.port;
         default = 55000;
       };
+      streamingProcesses = lib.mkOption {
+        description = ''
+          Processes used by the mastodon-streaming service.
+          Defaults to the number of CPU cores minus one.
+        '';
+        type = lib.types.nullOr lib.types.int;
+        default = null;
+      };
 
       webPort = lib.mkOption {
         description = "TCP port used by the mastodon-web service.";
         type = lib.types.port;
         default = 55001;
       };
+      webProcesses = lib.mkOption {
+        description = "Processes used by the mastodon-web service.";
+        type = lib.types.int;
+        default = 2;
+      };
+      webThreads = lib.mkOption {
+        description = "Threads per process used by the mastodon-web service.";
+        type = lib.types.int;
+        default = 5;
+      };
 
       sidekiqPort = lib.mkOption {
-        description = "TCP port used by the mastodon-sidekiq service";
+        description = "TCP port used by the mastodon-sidekiq service.";
         type = lib.types.port;
         default = 55002;
+      };
+      sidekiqThreads = lib.mkOption {
+        description = "Worker threads used by the mastodon-sidekiq service.";
+        type = lib.types.int;
+        default = 25;
       };
 
       vapidPublicKeyFile = lib.mkOption {
@@ -289,7 +348,7 @@ in {
         authenticate = lib.mkOption {
           description = "Authenticate with the SMTP server using username and password.";
           type = lib.types.bool;
-          default = true;
+          default = false;
         };
 
         host = lib.mkOption {
@@ -344,7 +403,7 @@ in {
       package = lib.mkOption {
         type = lib.types.package;
         default = pkgs.mastodon;
-        defaultText = "pkgs.mastodon";
+        defaultText = lib.literalExpression "pkgs.mastodon";
         description = "Mastodon package to use.";
       };
 
@@ -408,6 +467,8 @@ in {
       serviceConfig = {
         Type = "oneshot";
         WorkingDirectory = cfg.package;
+        # System Call Filtering
+        SystemCallFilter = [ ("~" + lib.concatStringsSep " " (systemCallsList ++ [ "@resources" ])) "@chown" "pipe" "pipe2" ];
       } // cfgService;
 
       after = [ "network.target" ];
@@ -421,10 +482,10 @@ in {
                 join pg_namespace s on s.oid = c.relnamespace \
                 where s.nspname not in ('pg_catalog', 'pg_toast', 'information_schema') \
                 and s.nspname not like 'pg_temp%';" | sed -n 3p` -eq 0 ]; then
-          SAFETY_ASSURED=1 rake db:schema:load
-          rake db:seed
+          SAFETY_ASSURED=1 rails db:schema:load
+          rails db:seed
         else
-          rake db:migrate
+          rails db:migrate
         fi
       '';
       path = [ cfg.package pkgs.postgresql ];
@@ -433,6 +494,8 @@ in {
         Type = "oneshot";
         EnvironmentFile = "/var/lib/mastodon/.secrets_env";
         WorkingDirectory = cfg.package;
+        # System Call Filtering
+        SystemCallFilter = [ ("~" + lib.concatStringsSep " " (systemCallsList ++ [ "@resources" ])) "@chown" "pipe" "pipe2" ];
       } // cfgService;
       after = [ "mastodon-init-dirs.service" "network.target" ] ++ (if databaseActuallyCreateLocally then [ "postgresql.service" ] else []);
       wantedBy = [ "multi-user.target" ];
@@ -457,6 +520,8 @@ in {
         # Runtime directory and mode
         RuntimeDirectory = "mastodon-streaming";
         RuntimeDirectoryMode = "0750";
+        # System Call Filtering
+        SystemCallFilter = [ ("~" + lib.concatStringsSep " " (systemCallsList ++ [ "@memlock" "@resources" ])) "pipe" "pipe2" ];
       } // cfgService;
     };
 
@@ -479,6 +544,8 @@ in {
         # Runtime directory and mode
         RuntimeDirectory = "mastodon-web";
         RuntimeDirectoryMode = "0750";
+        # System Call Filtering
+        SystemCallFilter = [ ("~" + lib.concatStringsSep " " systemCallsList) "@chown" "pipe" "pipe2" ];
       } // cfgService;
       path = with pkgs; [ file imagemagick ffmpeg ];
     };
@@ -491,13 +558,16 @@ in {
       wantedBy = [ "multi-user.target" ];
       environment = env // {
         PORT = toString(cfg.sidekiqPort);
+        DB_POOL = toString cfg.sidekiqThreads;
       };
       serviceConfig = {
-        ExecStart = "${cfg.package}/bin/sidekiq -c 25 -r ${cfg.package}";
+        ExecStart = "${cfg.package}/bin/sidekiq -c ${toString cfg.sidekiqThreads} -r ${cfg.package}";
         Restart = "always";
         RestartSec = 20;
         EnvironmentFile = "/var/lib/mastodon/.secrets_env";
         WorkingDirectory = cfg.package;
+        # System Call Filtering
+        SystemCallFilter = [ ("~" + lib.concatStringsSep " " systemCallsList) "@chown" "pipe" "pipe2" ];
       } // cfgService;
       path = with pkgs; [ file imagemagick ffmpeg ];
     };
@@ -530,6 +600,7 @@ in {
 
     services.postfix = lib.mkIf (cfg.smtp.createLocally && cfg.smtp.host == "127.0.0.1") {
       enable = true;
+      hostname = lib.mkDefault "${cfg.localDomain}";
     };
     services.redis = lib.mkIf (cfg.redis.createLocally && cfg.redis.host == "127.0.0.1") {
       enable = true;

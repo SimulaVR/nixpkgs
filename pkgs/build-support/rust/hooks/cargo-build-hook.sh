@@ -9,6 +9,18 @@ cargoBuildHook() {
         pushd "${buildAndTestSubdir}"
     fi
 
+    if [ "${cargoBuildType}" != "debug" ]; then
+        cargoBuildProfileFlag="--${cargoBuildType}"
+    fi
+
+    if [ -n "${cargoBuildNoDefaultFeatures-}" ]; then
+        cargoBuildNoDefaultFeaturesFlag=--no-default-features
+    fi
+
+    if [ -n "${cargoBuildFeatures-}" ]; then
+        cargoBuildFeaturesFlag="--features=${cargoBuildFeatures// /,}"
+    fi
+
     (
     set -x
     env \
@@ -19,7 +31,9 @@ cargoBuildHook() {
       cargo build -j $NIX_BUILD_CORES \
         --target @rustTargetPlatformSpec@ \
         --frozen \
-        --${cargoBuildType} \
+        ${cargoBuildProfileFlag} \
+        ${cargoBuildNoDefaultFeaturesFlag} \
+        ${cargoBuildFeaturesFlag} \
         ${cargoBuildFlags}
     )
 
@@ -32,4 +46,6 @@ cargoBuildHook() {
     echo "Finished cargoBuildHook"
 }
 
-buildPhase=cargoBuildHook
+if [ -z "${dontCargoBuild-}" ] && [ -z "${buildPhase-}" ]; then
+  buildPhase=cargoBuildHook
+fi

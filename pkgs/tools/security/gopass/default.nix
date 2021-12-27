@@ -13,7 +13,7 @@
 
 buildGoModule rec {
   pname = "gopass";
-  version = "1.12.1";
+  version = "1.13.0";
 
   nativeBuildInputs = [ installShellFiles makeWrapper ];
 
@@ -21,16 +21,16 @@ buildGoModule rec {
     owner = "gopasspw";
     repo = pname;
     rev = "v${version}";
-    sha256 = "0ickzq2swhabxqcg32n1i99bam6ip7c0mhhncgvmw332w6pzgvlb";
+    sha256 = "sha256-MBpk84H3Ng/+rCjW2Scm/su0/5kgs7IzvFk/bFLNzXY=";
   };
 
-  vendorSha256 = "0i0dhipp1gdn0xdl4bpi13ksxf7dc9biz9riapm988bldcr5s1kr";
+  vendorSha256 = "sha256-HGc6jUp4WO5P5dwfa0r7+X78a8us9fWrf+/IOotZHqk=";
 
   subPackages = [ "." ];
 
   doCheck = false;
 
-  buildFlagsArray = [ "-ldflags=-s -w -X main.version=${version} -X main.commit=${src.rev}" ];
+  ldflags = [ "-s" "-w" "-X main.version=${version}" "-X main.commit=${src.rev}" ];
 
   wrapperPath = lib.makeBinPath (
     [
@@ -41,17 +41,18 @@ buildGoModule rec {
   );
 
   postInstall = ''
-    HOME=$TMPDIR
-    for shell in bash fish zsh; do
-      $out/bin/gopass completion $shell > gopass.$shell
-      installShellCompletion gopass.$shell
-    done
+    installManPage gopass.1
+    installShellCompletion --zsh --name _gopass zsh.completion
+    installShellCompletion --bash --name gopass.bash bash.completion
+    installShellCompletion --fish --name gopass.fish fish.completion
   '' + lib.optionalString passAlias ''
     ln -s $out/bin/gopass $out/bin/pass
   '';
 
   postFixup = ''
-    wrapProgram $out/bin/gopass --prefix PATH : "${wrapperPath}"
+    wrapProgram $out/bin/gopass \
+      --prefix PATH : "${wrapperPath}" \
+      --set GOPASS_NO_REMINDER true
   '';
 
   meta = with lib; {
@@ -59,8 +60,7 @@ buildGoModule rec {
     homepage = "https://www.gopass.pw/";
     license = licenses.mit;
     maintainers = with maintainers; [ andir rvolosatovs ];
-    changelog = "https://github.com/gopasspw/gopass/blob/v${version}/CHANGELOG.md";
-    platforms = platforms.unix;
+    changelog = "https://github.com/gopasspw/gopass/raw/v${version}/CHANGELOG.md";
 
     longDescription = ''
       gopass is a rewrite of the pass password manager in Go with the aim of

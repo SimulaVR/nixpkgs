@@ -15,12 +15,12 @@
 
 buildPythonPackage rec {
   pname = "uvloop";
-  version = "0.15.1";
+  version = "0.16.0";
   disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "1p33xfzcy60qqca3rplzbh8h4x7x9l77vi6zbyy9md5z2a0q4ikq";
+    sha256 = "f74bc20c7b67d1c27c72601c78cf95be99d5c2cdd4514502b4f3eb0933ff1228";
   };
 
   buildInputs = [
@@ -44,8 +44,18 @@ buildPythonPackage rec {
     "--assert=plain"
     "--strict"
     "--tb=native"
+  ] ++ lib.optionals (stdenv.isAarch64) [
+    # test gets stuck in epoll_pwait on hydras aarch64 builders
+    # https://github.com/MagicStack/uvloop/issues/412
+    "--deselect" "tests/test_tcp.py::Test_AIO_TCPSSL::test_remote_shutdown_receives_trailing_data"
+  ] ++ lib.optionals (stdenv.isDarwin && stdenv.isAarch64) [
+    # Flaky test: https://github.com/MagicStack/uvloop/issues/412
+    "--deselect" "tests/test_tcp.py::Test_UV_TCPSSL::test_shutdown_timeout_handler_not_set"
+  ];
+
+  disabledTestPaths = [
     # ignore code linting tests
-    "--ignore=tests/test_sourcecode.py"
+    "tests/test_sourcecode.py"
   ];
 
   # force using installed/compiled uvloop vs source by moving tests to temp dir

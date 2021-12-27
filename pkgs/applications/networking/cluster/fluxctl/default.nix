@@ -2,16 +2,16 @@
 
 buildGoModule rec {
   pname = "fluxctl";
-  version = "1.21.2";
+  version = "1.24.3";
 
   src = fetchFromGitHub {
     owner = "weaveworks";
     repo = "flux";
     rev = version;
-    sha256 = "sha256-pI/LGAjTWFXiDKSV+dZl0wXK/TZmN9DuWf5Nu8EYNYc=";
+    sha256 = "sha256-i86WwSR14hxaXWMesvG2mG8nqXd97M3TekK2FLTLL+Y=";
   };
 
-  vendorSha256 = "sha256-Q8gIhJSZqdjBXrIcJfCd25BniDScwVzUwZ9Vc8p/z3c=";
+  vendorSha256 = "sha256-Fw3/SMO66eExlDNcIaHM+G2kB4zb1Cih7kp8xfel/iY=";
 
   nativeBuildInputs = [ installShellFiles ];
 
@@ -19,7 +19,7 @@ buildGoModule rec {
 
   subPackages = [ "cmd/fluxctl" ];
 
-  buildFlagsArray = [ "-ldflags=-s -w -X main.version=${version}" ];
+  ldflags = [ "-s" "-w" "-X main.version=${version}" ];
 
   postInstall = ''
     for shell in bash fish zsh; do

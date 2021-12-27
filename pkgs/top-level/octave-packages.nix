@@ -54,7 +54,7 @@ makeScope newScope (self:
       writeRequiredOctavePackagesHook;
 
     arduino = callPackage ../development/octave-modules/arduino {
-      inherit (pkgs) arduino;
+      inherit (pkgs) arduino-core-unwrapped;
     };
 
     audio = callPackage ../development/octave-modules/audio { };
@@ -179,11 +179,7 @@ makeScope newScope (self:
 
     sockets = callPackage ../development/octave-modules/sockets { };
 
-    sparsersb = callPackage ../development/octave-modules/sparsersb {
-      librsb = null;
-      # TODO: Package the librsb library to build this package.
-      # http://librsb.sourceforge.net/
-    };
+    sparsersb = callPackage ../development/octave-modules/sparsersb { };
 
     stk = callPackage ../development/octave-modules/stk { };
 
@@ -218,7 +214,7 @@ makeScope newScope (self:
     windows = callPackage ../development/octave-modules/windows { };
 
     zeromq = callPackage ../development/octave-modules/zeromq {
-      inherit (pkgs) zeromq;
+      inherit (pkgs) zeromq autoreconfHook;
     };
 
   })

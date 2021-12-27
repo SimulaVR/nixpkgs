@@ -1,9 +1,10 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, options, pkgs, ... }:
 
 with lib;
 
 let
   cfg = config.services.mwlib;
+  opt = options.services.mwlib;
   pypkgs = pkgs.python27Packages;
 
   inherit (pypkgs) python mwlib;
@@ -34,7 +35,7 @@ in
 
       port = mkOption {
         default = 8899;
-        type = types.int;
+        type = types.port;
         description = "Specify port to listen on.";
       }; # nserve.port
 
@@ -46,6 +47,9 @@ in
 
       qserve = mkOption {
         default = [ "${cfg.qserve.address}:${toString cfg.qserve.port}" ];
+        defaultText = literalExpression ''
+          [ "''${config.${opt.qserve.address}}:''${toString config.${opt.qserve.port}}"
+        ]'';
         type = types.listOf types.str;
         description = "Register qserve instance.";
       }; # nserve.qserve
@@ -68,7 +72,7 @@ in
 
       port = mkOption {
         default = 14311;
-        type = types.int;
+        type = types.port;
         description = "Specify port to listen on.";
       }; # qserve.port
 
@@ -96,6 +100,7 @@ in
     nslave = {
       enable = mkOption {
         default = cfg.qserve.enable;
+        defaultText = literalExpression "config.${opt.qserve.enable}";
         type = types.bool;
         description = ''
           Pulls new jobs from exactly one qserve instance
@@ -127,7 +132,7 @@ in
           You have to enable it, or use your own way for serving files
           and set the http.url option accordingly.
           '';
-        type = types.submodule ({
+        type = types.submodule ({ config, options, ... }: {
           options = {
             enable = mkOption {
               default = true;
@@ -137,7 +142,7 @@ in
 
             port = mkOption {
               default = 8898;
-              type = types.int;
+              type = types.port;
               description = "Port to listen to when serving files from cache.";
             }; # nslave.http.port
 
@@ -148,7 +153,8 @@ in
             }; # nslave.http.address
 
             url = mkOption {
-              default = "http://localhost:${toString cfg.nslave.http.port}/cache";
+              default = "http://localhost:${toString config.port}/cache";
+              defaultText = literalExpression ''"http://localhost:''${toString config.${options.port}}/cache"'';
               type = types.str;
               description = ''
                 Specify URL for accessing generated files from cache.

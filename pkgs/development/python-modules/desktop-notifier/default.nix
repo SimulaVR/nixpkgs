@@ -1,6 +1,6 @@
 { lib
 , buildPythonPackage
-, fetchPypi
+, fetchFromGitHub
 , pythonOlder
 , stdenv
 , packaging
@@ -10,11 +10,14 @@
 
 buildPythonPackage rec {
   pname = "desktop-notifier";
-  version = "3.2.2";
+  version = "3.3.2";
+  disabled = pythonOlder "3.6";
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "0b333594af6e54677f9620480226dbc88ec6dd7c004352de9268d01aa49467f4";
+  src = fetchFromGitHub {
+    owner = "SamSchott";
+    repo = pname;
+    rev = "v${version}";
+    sha256 = "sha256-h7an/Fm9pNnThCHXg9PAKG822dqXE/CUuW8lDJlwMfw=";
   };
 
   propagatedBuildInputs = [
@@ -34,5 +37,6 @@ buildPythonPackage rec {
     description = "A Python library for cross-platform desktop notifications";
     license = licenses.mit;
     maintainers = with maintainers; [ sfrijters ];
+    platforms = platforms.linux;
   };
 }

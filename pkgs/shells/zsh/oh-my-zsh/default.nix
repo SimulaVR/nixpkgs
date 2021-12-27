@@ -5,18 +5,20 @@
 , git, nix, nixfmt, jq, coreutils, gnused, curl, cacert }:
 
 stdenv.mkDerivation rec {
-  version = "2021-02-21";
+  version = "2021-12-18";
   pname = "oh-my-zsh";
-  rev = "9a9f3831925432fdf4352c24a002506a06d329c1";
+  rev = "904f8685f75ff5dd3f544f8c6f2cabb8e5952e9a";
 
   src = fetchFromGitHub {
     inherit rev;
     owner = "ohmyzsh";
     repo = "ohmyzsh";
-    sha256 = "befalsEX/o5WwVn0bzDnMVhlZawmpGV4AGzvxl7UHLI=";
+    sha256 = "Pos7LaNQllZrzBUx8a7QXi1sAVcIABQJOLUjIwGIP/U=";
   };
 
   installPhase = ''
+    runHook preInstall
+
     outdir=$out/share/oh-my-zsh
     template=templates/zshrc.zsh-template
 
@@ -64,6 +66,8 @@ stdenv.mkDerivation rec {
         . ~/.zsh_aliases
     fi
     EOF
+
+    runHook postInstall
   '';
 
   passthru = {
@@ -115,6 +119,6 @@ stdenv.mkDerivation rec {
     homepage = "https://ohmyz.sh/";
     license = licenses.mit;
     platforms = platforms.all;
-    maintainers = with maintainers; [ scolobb nequissimus ];
+    maintainers = with maintainers; [ nequissimus ];
   };
 }

@@ -1,5 +1,4 @@
 { lib
-, nixosTests
 , python3
 , groff
 , less
@@ -7,13 +6,6 @@
 let
   py = python3.override {
     packageOverrides = self: super: {
-      rsa = super.rsa.overridePythonAttrs (oldAttrs: rec {
-        version = "3.4.2";
-        src = oldAttrs.src.override {
-          inherit version;
-          sha256 = "25df4e10c263fb88b5ace923dd84bf9aa7f5019687b5e55382ffcdb8bede9db5";
-        };
-      });
       # TODO: https://github.com/aws/aws-cli/pull/5712
       colorama = super.colorama.overridePythonAttrs (oldAttrs: rec {
         version = "0.4.3";
@@ -28,11 +20,11 @@ let
 in
 with py.pkgs; buildPythonApplication rec {
   pname = "awscli";
-  version = "1.19.12"; # N.B: if you change this, change botocore to a matching version too
+  version = "1.20.54"; # N.B: if you change this, change botocore and boto3 to a matching version too
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-Tj9+UtYSL5yls7AxV7shABcOMhS12VXlpDNdxz8Ns5w=";
+    sha256 = "sha256-stnuPobBKIpKA4iTKGTO5kmMEl7grFdZNryz40S599M=";
   };
 
   # https://github.com/aws/aws-cli/issues/4837
@@ -40,9 +32,6 @@ with py.pkgs; buildPythonApplication rec {
     substituteInPlace setup.py \
       --replace "docutils>=0.10,<0.16" "docutils>=0.10"
   '';
-
-  # No tests included
-  doCheck = false;
 
   propagatedBuildInputs = [
     botocore
@@ -69,9 +58,17 @@ with py.pkgs; buildPythonApplication rec {
 
   passthru = {
     python = py; # for aws_shell
-
-    tests = { inherit (nixosTests) awscli; };
   };
+
+  doInstallCheck = true;
+  installCheckPhase = ''
+    runHook preInstallCheck
+
+    $out/bin/aws --version | grep "${py.pkgs.botocore.version}"
+    $out/bin/aws --version | grep "${version}"
+
+    runHook postInstallCheck
+  '';
 
   meta = with lib; {
     homepage = "https://aws.amazon.com/cli/";

@@ -22,11 +22,9 @@ buildGoModule rec {
 
   nativeBuildInputs = [ makeWrapper ];
 
-  preBuild = ''
-    buildFlagsArray+=(
-      "-ldflags=-s -w -X main.version=${version} -X main.commit=${src.rev}"
-    )
-  '';
+  ldflags = [
+    "-s" "-w" "-X main.version=${version}" "-X main.commit=${src.rev}"
+  ];
 
   postFixup = ''
     wrapProgram $out/bin/git-credential-gopass --prefix PATH : "${lib.makeBinPath [ gopass ]}"
@@ -37,6 +35,5 @@ buildGoModule rec {
     homepage = "https://github.com/gopasspw/git-credential-gopass";
     license = licenses.mit;
     maintainers = with maintainers; [ benneti ];
-    platforms = platforms.unix;
   };
 }
