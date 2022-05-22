@@ -64,7 +64,8 @@ let
         filter =
           builtins.filterSource
             (n: t:
-              (t == "directory" -> baseNameOf n != "tests")
+              cleanSourceFilter n t
+              && (t == "directory" -> baseNameOf n != "tests")
               && (t == "file" -> hasSuffix ".nix" n)
             );
       in
@@ -76,7 +77,7 @@ let
         } ''
           export NIX_STORE_DIR=$TMPDIR/store
           export NIX_STATE_DIR=$TMPDIR/state
-          ${pkgs.nix}/bin/nix-instantiate \
+          ${pkgs.buildPackages.nix}/bin/nix-instantiate \
             --show-trace \
             --eval --json --strict \
             --argstr libPath "$libPath" \
@@ -129,7 +130,7 @@ let
       genericName = "View NixOS documentation in a web browser";
       icon = "nix-snowflake";
       exec = "nixos-help";
-      categories = "System";
+      categories = ["System"];
     };
 
     in pkgs.symlinkJoin {

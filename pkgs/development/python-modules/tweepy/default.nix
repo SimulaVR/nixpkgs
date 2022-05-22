@@ -3,16 +3,16 @@
 , buildPythonPackage
 , fetchFromGitHub
 , oauthlib
-, requests
-, pythonOlder
-, vcrpy
 , pytestCheckHook
-, requests_oauthlib
+, pythonOlder
+, requests
+, requests-oauthlib
+, vcrpy
 }:
 
 buildPythonPackage rec {
   pname = "tweepy";
-  version = "4.4.0";
+  version = "4.9.0";
   format = "setuptools";
 
   disabled = pythonOlder "3.6";
@@ -20,15 +20,15 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = pname;
     repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-GUo8uvShyIOWWcO5T1JvV7DMC1W70YILx/hvHIGQg0o=";
+    rev = "refs/tags/v${version}";
+    hash = "sha256-BMRRunPRDW5J/7KU+pr2Uv9Qa6oHBwkA7tsGa5YdzLw=";
   };
 
   propagatedBuildInputs = [
     aiohttp
     oauthlib
     requests
-    requests_oauthlib
+    requests-oauthlib
   ];
 
   checkInputs = [

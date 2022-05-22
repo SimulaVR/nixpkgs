@@ -18,7 +18,6 @@ let
   luaEnv = lua.withPackages(ps: with ps; [
     cassowary
     cosmo
-    compat53
     linenoise
     lpeg
     lua-zlib
@@ -33,16 +32,20 @@ let
     penlight
     stdlib
     vstruct
+  ] ++ lib.optionals (lib.versionOlder lua.luaversion "5.2") [
+    bit32
+  ] ++ lib.optionals (lib.versionOlder lua.luaversion "5.3") [
+    compat53
   ]);
 in
 
 stdenv.mkDerivation rec {
   pname = "sile";
-  version = "0.12.0";
+  version = "0.12.5";
 
   src = fetchurl {
     url = "https://github.com/sile-typesetter/sile/releases/download/v${version}/${pname}-${version}.tar.xz";
-    sha256 = "1rkdzf4khyvsn5qg455mdhnlacxlqgi9vchy369a66qp5nrs50y9";
+    sha256 = "0z9wdiqwarysh3lhxss3w53vq58ml46bdi9ymr853kfl7m4gz5yy";
   };
 
   configureFlags = [

@@ -9,7 +9,7 @@ let
         version = "1.3.24";
         src = oldAttrs.src.override {
           inherit version;
-          sha256 = "ebbb777cbf9312359b897bf81ba00dae0f5cb69fba2a18265dcc18a6f5ef7519";
+          hash = "sha256-67t3fL+TEjWbiXv4G6ANrg9ctp+6KhgmXcwYpvXvdRk=";
         };
       });
       flask_migrate = super.flask_migrate.overridePythonAttrs (oldAttrs: rec {
@@ -20,8 +20,8 @@ let
           sha256 = "ae2f05671588762dd83a21d8b18c51fe355e86783e24594995ff8d7380dffe38";
         };
       });
-      werkzeug = self.callPackage ../../../development/python-modules/werkzeug/1.nix { };
-      flask = self.callPackage ../../../development/python-modules/flask/1.nix { };
+      werkzeug = self.callPackage ../../../development/python2-modules/werkzeug { };
+      flask = self.callPackage ../../../development/python2-modules/flask { };
       sqlsoup = super.sqlsoup.overrideAttrs ({ meta ? {}, ... }: {
         meta = meta // { broken = false; };
       });

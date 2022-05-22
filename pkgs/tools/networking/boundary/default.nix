@@ -2,7 +2,7 @@
 
 stdenv.mkDerivation rec {
   pname = "boundary";
-  version = "0.7.1";
+  version = "0.8.0";
 
   src =
     let
@@ -12,11 +12,13 @@ stdenv.mkDerivation rec {
         x86_64-linux = "linux_amd64";
         aarch64-linux = "linux_arm64";
         x86_64-darwin = "darwin_amd64";
+        aarch64-darwin = "darwin_arm64";
       };
       sha256 = selectSystem {
-        x86_64-linux = "sha256-5m5ckeX3gVY82q9aQWusnq3o/+UBPJSPDdISL86OfV8=";
-        aarch64-linux = "sha256-+dnQh89kg3JcDL8sucMceCMRFyUjoAIYuZtDM8AUMYw=";
-        x86_64-darwin = "sha256-ZoWW8y048+5Ru3s7lUxLTMxuITFBC9AgwqafyHPDc54=";
+        x86_64-linux = "sha256-cZ41+VwbTQ/X/A0+OL1ZVXVv3eu90H5kMLiHqyc3688=";
+        aarch64-linux = "sha256-2svJx3rp0swyuXz3WCLRvDTRkweLMVIKrgYekcG8LdE=";
+        x86_64-darwin = "sha256-zkSESscsapyoMlFdaTzmooOEjUTte8MDNIGVhy9knzc=";
+        aarch64-darwin = "sha256-A7KNhTWuLjNaO2GyldCDquRur0i5KoXl6GZYQIqt0cI=";
       };
     in
     fetchzip {
@@ -60,7 +62,6 @@ stdenv.mkDerivation rec {
       and does not require an agent to be installed on every end host.
     '';
     license = licenses.mpl20;
-    maintainers = with maintainers; [ jk ];
-    platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" ];
+    maintainers = with maintainers; [ jk techknowlogick ];
   };
 }

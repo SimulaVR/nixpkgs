@@ -7,6 +7,7 @@
 , nbconvert
 , jupyter
 , chainer
+, parameterized
 , pytorch
 , mxnet
 , tensorflow
@@ -15,13 +16,13 @@
 
 buildPythonPackage rec {
   pname = "einops";
-  version = "0.3.2";
+  version = "0.4.1";
 
   src = fetchFromGitHub {
     owner = "arogozhnikov";
     repo = pname;
     rev = "v${version}";
-    sha256 = "0ix094cfh6w4bvx6ymp5dpm35y9nkaibcn1y50g6kwdp4f0473y8";
+    hash = "sha256-n4R4lcRimuOncisCTs2zJWPlqZ+W2yPkvkWAnx4R91s=";
   };
 
   checkInputs = [
@@ -33,6 +34,7 @@ buildPythonPackage rec {
     jupyter
     # For backend tests
     chainer
+    parameterized
     pytorch
     mxnet
     tensorflow
@@ -44,6 +46,11 @@ buildPythonPackage rec {
 
   checkPhase = ''
     export HOME=$TMPDIR
+
+    # Prevent hangs on PyTorch-related tests, see
+    # https://discuss.pytorch.org/t/pytorch-cpu-hangs-on-nn-linear/17748/4
+    export OMP_NUM_THREADS=1
+
     nosetests -v -w tests
   '';
 

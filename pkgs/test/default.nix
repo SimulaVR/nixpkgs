@@ -59,11 +59,19 @@ with pkgs;
 
   trivial-builders = recurseIntoAttrs {
     writeStringReferencesToFile = callPackage ../build-support/trivial-builders/test/writeStringReferencesToFile.nix {};
+    writeTextFile = callPackage ../build-support/trivial-builders/test/write-text-file.nix {};
     references = callPackage ../build-support/trivial-builders/test/references.nix {};
     overriding = callPackage ../build-support/trivial-builders/test-overriding.nix {};
+    concat = callPackage ../build-support/trivial-builders/test/concat-test.nix {};
   };
 
   writers = callPackage ../build-support/writers/test.nix {};
 
+  testers = callPackage ../build-support/testers/test/default.nix {};
+
   dhall = callPackage ./dhall { };
+
+  makeWrapper = callPackage ./make-wrapper {};
+
+  pkgs-lib = recurseIntoAttrs (import ../pkgs-lib/tests { inherit pkgs; });
 }

@@ -7,10 +7,12 @@
 , highlightSupport ? fullBuild
 , ApplicationServices
 # test dependencies
+, runCommand
 , unzip
 , which
 , sqlite
 , git
+, cacert
 , gnupg
 }:
 
@@ -18,12 +20,12 @@ let
   inherit (python3Packages) docutils python fb-re2 pygit2 pygments;
 
   self = python3Packages.buildPythonApplication rec {
-    pname = "mercurial";
-    version = "6.0.1";
+    pname = "mercurial${lib.optionalString fullBuild "-full"}";
+    version = "6.1.2";
 
     src = fetchurl {
       url = "https://mercurial-scm.org/release/mercurial-${version}.tar.gz";
-      sha256 = "sha256-Bf0LSAOJyWVH9abHaekO4A8dE/esDUZeQKOBxs86VuI=";
+      sha256 = "sha256-pSgQ/AFAmCjEl00Lwsu1yA6UjVtYTPsadpliPpJKLyo=";
     };
 
     format = "other";
@@ -32,20 +34,11 @@ let
 
     cargoDeps = if rustSupport then rustPlatform.fetchCargoTarball {
       inherit src;
-      name = "${pname}-${version}";
-      sha256 = "sha256-leyLb6RqntiuEhmJSUkZRUuO8ah0BZI5OhKkGbWRjxs=";
-      sourceRoot = "${pname}-${version}/rust";
+      name = "mercurial-${version}";
+      sha256 = "sha256-OSaeOp+SjQ5n61jV8UthtQQqkneBYJhESoQDCwRSTco=";
+      sourceRoot = "mercurial-${version}/rust";
     } else null;
     cargoRoot = if rustSupport then "rust" else null;
-
-    postPatch = ''
-      patchShebangs .
-
-      for f in **/*.{py,c,t}; do
-        # not only used in shebangs
-        substituteAllInPlace "$f" '/bin/sh' '${stdenv.shell}'
-      done
-    '';
 
     propagatedBuildInputs = lib.optional re2Support fb-re2
       ++ lib.optional gitSupport pygit2
@@ -61,26 +54,6 @@ let
 
     makeFlags = [ "PREFIX=$(out)" ]
       ++ lib.optional rustSupport "PURE=--rust";
-
-    doCheck = stdenv.isLinux;  # tests seem unstable on Darwin
-    checkInputs = [
-      unzip
-      which
-      sqlite
-      git
-      gnupg
-    ];
-    checkPhase = ''
-      cat << EOF > tests/blacklists/nix
-      # tests enforcing "/usr/bin/env" shebangs, which are patched for nix
-      test-run-tests.t
-      test-check-shbang.t
-      EOF
-
-      # extended timeout necessary for tests to pass on the busy CI workers
-      export HGTESTFLAGS="--blacklist blacklists/nix --timeout 600"
-      make check
-    '';
 
     postInstall = (lib.optionalString guiSupport ''
       mkdir -p $out/etc/mercurial
@@ -109,18 +82,82 @@ let
         --zsh contrib/zsh_completion
     '';
 
-    passthru.tests = {};
+    passthru.tests = {
+      mercurial-tests = makeTests { flags = "--with-hg=$MERCURIAL_BASE/bin/hg"; };
+    };
 
     meta = with lib; {
       description = "A fast, lightweight SCM system for very large distributed projects";
       homepage = "https://www.mercurial-scm.org";
       downloadPage = "https://www.mercurial-scm.org/release/";
       license = licenses.gpl2Plus;
-      maintainers = with maintainers; [ eelco lukegb ];
-      updateWalker = true;
+      maintainers = with maintainers; [ eelco lukegb pacien ];
       platforms = platforms.unix;
     };
   };
+
+  makeTests = { mercurial ? self, nameSuffix ? "", flags ? "" }: runCommand "${mercurial.pname}${nameSuffix}-tests" {
+    inherit (mercurial) src;
+
+    SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";  # needed for git
+    MERCURIAL_BASE = mercurial;
+    nativeBuildInputs = [
+      python
+      unzip
+      which
+      sqlite
+      git
+      gnupg
+    ];
+
+    postPatch = ''
+      patchShebangs .
+
+      for f in **/*.{py,c,t}; do
+        # not only used in shebangs
+        substituteAllInPlace "$f" '/bin/sh' '${stdenv.shell}'
+      done
+
+      for f in **/*.t; do
+        substituteInPlace 2>/dev/null "$f" \
+          --replace '*/hg:' '*/*hg*:' \${/* paths emitted by our wrapped hg look like ..hg-wrapped-wrapped */""}
+          --replace '"$PYTHON" "$BINDIR"/hg' '"$BINDIR"/hg' ${/* 'hg' is a wrapper; don't run using python directly */""}
+      done
+    '';
+
+    # This runs Mercurial _a lot_ of times.
+    requiredSystemFeatures = [ "big-parallel" ];
+
+    # Don't run tests if not-Linux or if cross-compiling.
+    meta.broken = !stdenv.hostPlatform.isLinux || stdenv.buildPlatform != stdenv.hostPlatform;
+  } ''
+    addToSearchPathWithCustomDelimiter : PYTHONPATH "${mercurial}/${python.sitePackages}"
+
+    unpackPhase
+    cd "$sourceRoot"
+    patchPhase
+
+    cat << EOF > tests/blacklists/nix
+    # tests enforcing "/usr/bin/env" shebangs, which are patched for nix
+    test-run-tests.t
+    test-check-shbang.t
+
+    # unstable experimental/unsupported features
+    # https://bz.mercurial-scm.org/show_bug.cgi?id=6633#c1
+    test-git-interop.t
+
+    # doesn't like the extra setlocale warnings emitted by our bash wrappers
+    test-locale.t
+    EOF
+
+    export HGTEST_REAL_HG="${mercurial}/bin/hg"
+    # include tests for native components
+    export HGMODULEPOLICY="rust+c"
+    # extended timeout necessary for tests to pass on the busy CI workers
+    export HGTESTFLAGS="--blacklist blacklists/nix --timeout 1800 -j$NIX_BUILD_CORES ${flags}"
+    make check
+    touch $out
+  '';
 in
   self.overridePythonAttrs (origAttrs: {
     passthru = origAttrs.passthru // rec {
@@ -145,7 +182,11 @@ in
         buildInputs = self.buildInputs ++ self.propagatedBuildInputs;
         nativeBuildInputs = self.nativeBuildInputs;
 
-        phases = [ "installPhase" "installCheckPhase" ];
+        dontUnpack = true;
+        dontPatch = true;
+        dontConfigure = true;
+        dontBuild = true;
+        doCheck = false;
 
         installPhase = ''
           runHook preInstall

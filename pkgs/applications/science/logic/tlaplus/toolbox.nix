@@ -18,10 +18,8 @@ let
     comment = "IDE for TLA+";
     desktopName = name;
     genericName = comment;
-    categories = "Development";
-    extraEntries = ''
-      StartupWMClass=TLA+ Toolbox
-    '';
+    categories = [ "Development" ];
+    startupWMClass = "TLA+ Toolbox";
   };
 
 
@@ -36,7 +34,10 @@ stdenv.mkDerivation rec {
 
   buildInputs = [ gtk3 ];
 
-  nativeBuildInputs = [ makeWrapper wrapGAppsHook ];
+  nativeBuildInputs = [
+    makeWrapper
+    (wrapGAppsHook.override { makeBinaryWrapper = makeWrapper; })
+  ];
 
   dontWrapGApps = true;
 
@@ -64,7 +65,7 @@ stdenv.mkDerivation rec {
       "$(find "$out/toolbox" -name jspawnhelper)"
 
     makeWrapper $out/toolbox/toolbox $out/bin/tla-toolbox \
-      --run "set -x; cd $out/toolbox" \
+      --chdir "$out/toolbox" \
       --add-flags "-data ~/.tla-toolbox" \
       --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath [ gtk3 libXtst glib zlib ]}"  \
       "''${gappsWrapperArgs[@]}"

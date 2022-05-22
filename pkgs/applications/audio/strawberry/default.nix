@@ -19,6 +19,7 @@
 , protobuf
 , sqlite
 , taglib
+, libgpod
 , libpulseaudio
 , libselinux
 , libsepol
@@ -36,13 +37,13 @@
 
 mkDerivation rec {
   pname = "strawberry";
-  version = "1.0.0";
+  version = "1.0.3";
 
   src = fetchFromGitHub {
     owner = "jonaski";
     repo = pname;
     rev = version;
-    sha256 = "sha256-m1BB5OIeCIQuJpxEO1xmb/Z8tzeHF31jYg67OpVWWRM=";
+    sha256 = "sha256-wa7r6maHAgCTD/TFjqtMuoRt1BqQ38T8KpbMUOoS2ZE=";
   };
 
   buildInputs = [
@@ -63,6 +64,7 @@ mkDerivation rec {
     qtbase
     qtx11extras
   ] ++ lib.optionals stdenv.isLinux [
+    libgpod
     libpulseaudio
     libselinux
     libsepol
@@ -70,8 +72,10 @@ mkDerivation rec {
   ] ++ lib.optionals withGstreamer (with gst_all_1; [
     glib-networking
     gstreamer
+    gst-libav
     gst-plugins-base
     gst-plugins-good
+    gst-plugins-bad
     gst-plugins-ugly
   ]) ++ lib.optional withVlc libvlc;
 

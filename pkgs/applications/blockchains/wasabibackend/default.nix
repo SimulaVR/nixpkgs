@@ -32,11 +32,11 @@ buildDotnetModule rec {
 
   preConfigure = ''
     makeWrapperArgs+=(
-      --run "cd $out/lib/${pname}"
+      --chdir "$out/lib/${pname}"
     )
   '';
 
-  postInstall = ''
+  postFixup = ''
     mv $out/bin/WalletWasabi.Backend $out/bin/WasabiBackend
   '';
 
